@@ -3,11 +3,18 @@ package com.voidpulse.pulseevents.manager;
 import com.voidpulse.pulseevents.events.PulseEvent;
 import com.voidpulse.pulseevents.events.ConfiguredPulseEvent;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,6 +22,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 @SuppressWarnings({"deprecation", "unused"})
 public class EventManager {
@@ -30,6 +39,10 @@ public class EventManager {
     private AnnouncementManager announcementManager;
     private BukkitTask stopTask;
     private boolean eventsSystemEnabled;
+    private final Map<UUID, Integer> survivalStreaks = new HashMap<>();
+    private final Set<UUID> currentEventSurvivors = new HashSet<>();
+    private final Map<UUID, String> playerVotes = new HashMap<>();
+    private final Map<String, Integer> voteCounts = new HashMap<>();
 
     public EventManager(JavaPlugin plugin, LiveUIManager liveUIManager, LanguageManager lang) {
         this.plugin = plugin;
@@ -112,7 +125,10 @@ public class EventManager {
             return false;
         }
 
-        PulseEvent selectedEvent = selectWeightedRandomEvent(availableEvents);
+        PulseEvent selectedEvent = selectVotedEvent(availableEvents);
+        if (selectedEvent == null) {
+            selectedEvent = selectWeightedRandomEvent(availableEvents);
+        }
         return selectedEvent != null && startEvent(selectedEvent);
     }
 
@@ -211,6 +227,14 @@ public class EventManager {
     }
 
     public boolean stopCurrent() {
+        return stopCurrent(false);
+    }
+
+    public boolean stopCurrentNaturally() {
+        return stopCurrent(true);
+    }
+
+    public boolean stopCurrent(boolean rewardSurvivors) {
         if (current == null) {
             return false;
         }
@@ -227,6 +251,11 @@ public class EventManager {
         }
 
         liveUIManager.stop();
+        if (rewardSurvivors) {
+            rewardCurrentEventSurvivors(eventToStop);
+        } else {
+            currentEventSurvivors.clear();
+        }
         current = null;
 
         if (eventToStop instanceof ConfiguredPulseEvent configuredPulseEvent
@@ -276,6 +305,42 @@ public class EventManager {
         return new ArrayList<>(events);
     }
 
+    public boolean voteForEvent(Player player, PulseEvent event) {
+        if (player == null || event == null || !eventsSystemEnabled || current != null) {
+            return false;
+        }
+
+        String normalizedKey = normalizeEventKey(event.getKey());
+        if (!eventsByKey.containsKey(normalizedKey)) {
+            return false;
+        }
+
+        UUID playerId = player.getUniqueId();
+        String previousVote = playerVotes.put(playerId, normalizedKey);
+        if (previousVote != null) {
+            decrementVote(previousVote);
+        }
+
+        voteCounts.merge(normalizedKey, 1, Integer::sum);
+        return true;
+    }
+
+    public int getVoteCount(PulseEvent event) {
+        return voteCounts.getOrDefault(normalizeEventKey(event.getKey()), 0);
+    }
+
+    public boolean hasActiveVote(Player player, PulseEvent event) {
+        if (player == null || event == null) {
+            return false;
+        }
+
+        return normalizeEventKey(event.getKey()).equals(playerVotes.get(player.getUniqueId()));
+    }
+
+    public boolean hasAnyActiveVote(Player player) {
+        return player != null && playerVotes.containsKey(player.getUniqueId());
+    }
+
     public String getConfigKey(PulseEvent event) {
         String className = event.getClass().getSimpleName();
         String baseName = className.endsWith("Event")
@@ -286,10 +351,26 @@ public class EventManager {
     }
 
     public int getEventChance(PulseEvent event) {
+        if (event instanceof ConfiguredPulseEvent configuredPulseEvent) {
+            return configuredPulseEvent.getChance();
+        }
+
         return Math.max(0, plugin.getConfig().getInt(event.getChanceConfigPath(), 100));
     }
 
     public void setEventChance(PulseEvent event, int chance) {
+        if (event instanceof ConfiguredPulseEvent configuredPulseEvent) {
+            configuredPulseEvent.setChance(chance);
+            if (plugin instanceof com.voidpulse.pulseevents.PulseEvents pulseEvents) {
+                pulseEvents.getCustomEventManager().saveEventChance(configuredPulseEvent);
+            }
+
+            if (announcementManager != null) {
+                announcementManager.refreshSchedules();
+            }
+            return;
+        }
+
         plugin.getConfig().set(event.getChanceConfigPath(), Math.max(0, chance));
         plugin.saveConfig();
 
@@ -325,11 +406,14 @@ public class EventManager {
 
         current = event;
         cancelStopTask();
+        snapshotCurrentEventSurvivors(event);
+        clearVotes();
 
         try {
             current.start();
         } catch (Exception exception) {
             plugin.getLogger().severe("Failed to start event " + event.getClass().getSimpleName() + ": " + exception.getMessage());
+            currentEventSurvivors.clear();
             current = null;
 
             if (announcementManager != null) {
@@ -364,7 +448,7 @@ public class EventManager {
         int duration = Math.max(0, current.getDuration());
         stopTask = Bukkit.getScheduler().runTaskLater(
                 plugin,
-                this::stopCurrent,
+                this::stopCurrentNaturally,
                 Math.max(1L, duration * 20L)
         );
 
@@ -407,11 +491,297 @@ public class EventManager {
         return availableEvents.get(availableEvents.size() - 1);
     }
 
+    private PulseEvent selectVotedEvent(List<PulseEvent> availableEvents) {
+        int highestVotes = 0;
+        List<PulseEvent> candidates = new ArrayList<>();
+
+        for (PulseEvent event : availableEvents) {
+            int votes = getVoteCount(event);
+            if (votes <= 0) {
+                continue;
+            }
+
+            if (votes > highestVotes) {
+                highestVotes = votes;
+                candidates.clear();
+                candidates.add(event);
+                continue;
+            }
+
+            if (votes == highestVotes) {
+                candidates.add(event);
+            }
+        }
+
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
+        return selectWeightedRandomEvent(candidates);
+    }
+
     private void cancelStopTask() {
         if (stopTask != null) {
             stopTask.cancel();
             stopTask = null;
         }
+    }
+
+    private void clearVotes() {
+        playerVotes.clear();
+        voteCounts.clear();
+    }
+
+    private void decrementVote(String eventKey) {
+        int updated = voteCounts.getOrDefault(eventKey, 0) - 1;
+        if (updated <= 0) {
+            voteCounts.remove(eventKey);
+        } else {
+            voteCounts.put(eventKey, updated);
+        }
+    }
+
+    public void markPlayerFailedCurrentEvent(Player player) {
+        if (player == null) {
+            return;
+        }
+
+        UUID playerId = player.getUniqueId();
+        if (currentEventSurvivors.remove(playerId)) {
+            survivalStreaks.put(playerId, 0);
+        }
+    }
+
+    private void snapshotCurrentEventSurvivors(PulseEvent event) {
+        currentEventSurvivors.clear();
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isEligibleForEvent(event, player)) {
+                currentEventSurvivors.add(player.getUniqueId());
+            }
+        }
+    }
+
+    private boolean isEligibleForEvent(PulseEvent event, Player player) {
+        if (player == null || !player.isOnline() || player.isDead()) {
+            return false;
+        }
+
+        List<String> globalAllowedWorlds = plugin.getConfig().getStringList("multiworld.allowed-worlds");
+        if (plugin.getConfig().getBoolean("multiworld.enabled", true)
+                && !globalAllowedWorlds.isEmpty()
+                && !globalAllowedWorlds.contains(player.getWorld().getName())) {
+            return false;
+        }
+
+        if (event instanceof ConfiguredPulseEvent configuredPulseEvent) {
+            List<String> eventAllowedWorlds = configuredPulseEvent.getAllowedWorlds();
+            return eventAllowedWorlds.isEmpty() || eventAllowedWorlds.contains(player.getWorld().getName());
+        }
+
+        return true;
+    }
+
+    private void rewardCurrentEventSurvivors(PulseEvent event) {
+        Map<Integer, StreakReward> milestones = getSurvivalStreakMilestones();
+        if (currentEventSurvivors.isEmpty()) {
+            return;
+        }
+
+        for (UUID playerId : new ArrayList<>(currentEventSurvivors)) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !isEligibleForEvent(event, player)) {
+                survivalStreaks.put(playerId, 0);
+                continue;
+            }
+
+            int streak = survivalStreaks.getOrDefault(playerId, 0) + 1;
+            survivalStreaks.put(playerId, streak);
+
+            StreakReward reward = milestones.get(streak);
+            if (reward == null) {
+                continue;
+            }
+
+            reward.apply(player, streak);
+        }
+
+        currentEventSurvivors.clear();
+    }
+
+    private Map<Integer, StreakReward> getSurvivalStreakMilestones() {
+        Map<Integer, StreakReward> milestones = new HashMap<>();
+        String path = "streak-rewards.milestones";
+        if (!plugin.getConfig().isConfigurationSection(path)) {
+            return milestones;
+        }
+
+        for (String key : plugin.getConfig().getConfigurationSection(path).getKeys(false)) {
+            try {
+                int streak = Integer.parseInt(key);
+                if (streak > 0) {
+                    StreakReward reward = parseStreakReward(path + "." + key);
+                    if (reward != null) {
+                        milestones.put(streak, reward);
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+                plugin.getLogger().warning("Ignoring invalid streak reward milestone '" + key + "'.");
+            }
+        }
+
+        return milestones;
+    }
+
+    private StreakReward parseStreakReward(String path) {
+        String mode = plugin.getConfig().getString(path + ".mode", "").trim().toLowerCase(Locale.ROOT);
+        if (mode.isEmpty()) {
+            return null;
+        }
+
+        return switch (mode) {
+            case "vault", "money" -> {
+                double amount = plugin.getConfig().getDouble(path + ".value", 0.0D);
+                yield amount > 0.0D ? createVaultReward(amount) : null;
+            }
+            case "item" -> createSimpleItemReward(plugin.getConfig().getString(path + ".value", ""));
+            case "custom-item", "customitem" -> createCustomItemReward(path + ".value");
+            case "command" -> createCommandReward(plugin.getConfig().getString(path + ".value", ""));
+            default -> {
+                plugin.getLogger().warning("Unsupported streak reward mode '" + mode + "' at " + path + ".");
+                yield null;
+            }
+        };
+    }
+
+    private StreakReward createVaultReward(double amount) {
+        if (!(plugin instanceof com.voidpulse.pulseevents.PulseEvents pulseEvents)) {
+            return null;
+        }
+
+        return (player, streak) -> {
+            if (!pulseEvents.getEconomyManager().isAvailable()) {
+                return;
+            }
+
+            if (pulseEvents.getEconomyManager().deposit(player, amount)) {
+                player.sendMessage(lang.getWithPrefix(
+                        "event.streak.reward-received",
+                        "%streak%",
+                        String.valueOf(streak),
+                        "%reward%",
+                        pulseEvents.getEconomyManager().format(amount)
+                ));
+            }
+        };
+    }
+
+    private StreakReward createSimpleItemReward(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        String[] parts = value.trim().split("\\s+");
+        Material material;
+        try {
+            material = Material.valueOf(parts[0].toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            plugin.getLogger().warning("Invalid streak reward item material '" + parts[0] + "'.");
+            return null;
+        }
+
+        int amount = 1;
+        if (parts.length > 1) {
+            try {
+                amount = Math.max(1, Integer.parseInt(parts[1]));
+            } catch (NumberFormatException exception) {
+                plugin.getLogger().warning("Invalid streak reward item amount in '" + value + "'.");
+            }
+        }
+
+        ItemStack item = new ItemStack(material, amount);
+        return createItemReward(item, amount + "x " + material.name());
+    }
+
+    private StreakReward createCustomItemReward(String path) {
+        String materialName = plugin.getConfig().getString(path + ".material", "STONE");
+        Material material;
+        try {
+            material = Material.valueOf(materialName.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            plugin.getLogger().warning("Invalid custom streak reward material '" + materialName + "'.");
+            return null;
+        }
+
+        int amount = Math.max(1, plugin.getConfig().getInt(path + ".amount", 1));
+        ItemStack item = new ItemStack(material, amount);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String name = plugin.getConfig().getString(path + ".name");
+            if (name != null && !name.isBlank()) {
+                meta.setDisplayName(lang.format(name));
+            }
+
+            List<String> lore = plugin.getConfig().getStringList(path + ".lore");
+            if (!lore.isEmpty()) {
+                List<String> formattedLore = new ArrayList<>();
+                for (String line : lore) {
+                    formattedLore.add(lang.format(line));
+                }
+                meta.setLore(formattedLore);
+            }
+
+            if (plugin.getConfig().contains(path + ".custom-model-data")) {
+                meta.setCustomModelData(plugin.getConfig().getInt(path + ".custom-model-data"));
+            }
+            item.setItemMeta(meta);
+        }
+
+        String description = meta != null && meta.hasDisplayName() ? meta.getDisplayName() : amount + "x " + material.name();
+        return createItemReward(item, description);
+    }
+
+    private StreakReward createItemReward(ItemStack item, String description) {
+        return (player, streak) -> {
+            HashMap<Integer, ItemStack> leftovers = player.getInventory().addItem(item.clone());
+            for (ItemStack leftover : leftovers.values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+            }
+
+            player.sendMessage(lang.getWithPrefix(
+                    "event.streak.reward-received",
+                    "%streak%",
+                    String.valueOf(streak),
+                    "%reward%",
+                    description
+            ));
+        };
+    }
+
+    private StreakReward createCommandReward(String command) {
+        if (command == null || command.isBlank()) {
+            return null;
+        }
+
+        return (player, streak) -> {
+            Bukkit.dispatchCommand(
+                    Bukkit.getConsoleSender(),
+                    command
+                            .replace("%player%", player.getName())
+                            .replace("%streak%", String.valueOf(streak))
+            );
+            player.sendMessage(lang.getWithPrefix(
+                    "event.streak.reward-received",
+                    "%streak%",
+                    String.valueOf(streak),
+                    "%reward%",
+                    "command"
+            ));
+        };
+    }
+
+    private interface StreakReward {
+        void apply(Player player, int streak);
     }
 
     private String normalizeEventKey(String input) {

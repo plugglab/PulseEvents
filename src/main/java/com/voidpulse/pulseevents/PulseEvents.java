@@ -16,6 +16,7 @@ import com.voidpulse.pulseevents.listener.CoinRainListener;
 import com.voidpulse.pulseevents.listener.EventsGuiListener;
 import com.voidpulse.pulseevents.listener.JoinListener;
 import com.voidpulse.pulseevents.listener.MilkBlockListener;
+import com.voidpulse.pulseevents.listener.PlayerSurvivalListener;
 import com.voidpulse.pulseevents.manager.EconomyManager;
 import com.voidpulse.pulseevents.manager.EventManager;
 import com.voidpulse.pulseevents.manager.LanguageManager;
@@ -48,6 +49,9 @@ public final class PulseEvents extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        saveResource("events/meteor-shower.yml", false);
+        saveResource("events/gravity-well.yml", false);
+        saveResource("events/hot-potato.yml", false);
         getConfig().options().copyDefaults(true);
         saveConfig();
 
@@ -97,6 +101,11 @@ public final class PulseEvents extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(
                 new JoinListener(this, updateChecker, eventManager, liveUIManager),
+                this
+        );
+
+        getServer().getPluginManager().registerEvents(
+                new PlayerSurvivalListener(eventManager),
                 this
         );
 
@@ -207,5 +216,9 @@ public final class PulseEvents extends JavaPlugin {
 
     public EventsGuiListener getEventsGuiListener() {
         return eventsGuiListener;
+    }
+
+    public CustomEventManager getCustomEventManager() {
+        return customEventManager;
     }
 }

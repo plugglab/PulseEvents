@@ -4,10 +4,13 @@ import com.voidpulse.pulseevents.events.ConfiguredPulseEvent;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -28,17 +31,23 @@ public class CustomEventManager {
 
     public List<ConfiguredPulseEvent> loadCustomEvents() {
         List<ConfiguredPulseEvent> events = new ArrayList<>();
-        ConfigurationSection customEventsSection = plugin.getConfig().getConfigurationSection("custom-events");
-        if (customEventsSection == null) {
+        File eventsFolder = new File(plugin.getDataFolder(), "events");
+        ensureExampleEvents(eventsFolder);
+
+        File[] eventFiles = eventsFolder.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (eventFiles == null || eventFiles.length == 0) {
             return events;
         }
 
-        for (String key : customEventsSection.getKeys(false)) {
-            ConfigurationSection section = customEventsSection.getConfigurationSection(key);
+        for (File eventFile : eventFiles) {
+            YamlConfiguration configuration = YamlConfiguration.loadConfiguration(eventFile);
+            ConfigurationSection section = configuration.getConfigurationSection("event");
             if (section == null) {
+                plugin.getLogger().warning("Custom event file '" + eventFile.getName() + "' is missing the top-level 'event' section.");
                 continue;
             }
 
+            String key = section.getString("key", stripExtension(eventFile.getName()));
             if (!section.getBoolean("enabled", true)) {
                 continue;
             }
@@ -56,6 +65,7 @@ public class CustomEventManager {
                     lang,
                     economyManager,
                     worldCheck,
+                    eventFile,
                     key,
                     section
             );
@@ -70,6 +80,41 @@ public class CustomEventManager {
 
         plugin.getLogger().info("Loaded " + events.size() + " custom PulseEvents event(s).");
         return events;
+    }
+
+    public void saveEventChance(ConfiguredPulseEvent event) {
+        File sourceFile = event.getSourceFile();
+        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(sourceFile);
+        configuration.set("event.chance", event.getChance());
+
+        try {
+            configuration.save(sourceFile);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to save chance for custom event '" + event.getKey() + "': " + exception.getMessage());
+        }
+    }
+
+    private void ensureExampleEvents(File eventsFolder) {
+        if (!eventsFolder.exists() && !eventsFolder.mkdirs()) {
+            plugin.getLogger().warning("Could not create custom events folder at " + eventsFolder.getAbsolutePath());
+            return;
+        }
+
+        saveExampleEvent("meteor-shower.yml");
+        saveExampleEvent("gravity-well.yml");
+        saveExampleEvent("hot-potato.yml");
+    }
+
+    private void saveExampleEvent(String fileName) {
+        File targetFile = new File(new File(plugin.getDataFolder(), "events"), fileName);
+        if (!targetFile.exists()) {
+            plugin.saveResource("events/" + fileName, false);
+        }
+    }
+
+    private String stripExtension(String fileName) {
+        int lastDot = fileName.lastIndexOf('.');
+        return lastDot >= 0 ? fileName.substring(0, lastDot) : fileName;
     }
 
     private List<String> validateEventSection(String key, ConfigurationSection section) {

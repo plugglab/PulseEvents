@@ -4,37 +4,37 @@ This file documents every custom-event option currently supported by PulseEvents
 
 ## Location
 
-Custom events live under `custom-events` in [config.yml](C:\Users\Gabri\Desktop\plugin\PulseEvents\src\main\resources\config.yml).
+Custom events live as separate `.yml` files in the plugin `events/` folder.
 
 ## Minimal Example
 
 ```yml
-custom-events:
-  my-event:
-    enabled: true
-    name: "My Event"
-    chance: 100
-    duration: 20
-    icon: NETHER_STAR
-    min-players: 1
-    allowed-worlds: []
-    start-message: "&a%event% has started."
-    end-message: "&7%event% has ended."
-    bossbar-title: "&d%event%"
-    actions:
-      opening-title:
-        type: title
-        target: all-players
-        title: "&d%event%"
-        subtitle: "&7Good luck."
-      first-wave:
-        type: spawn-mob
-        target: random-players
-        target-count: 2
-        chance: 75
-        delay-seconds: 3
-        entity: ZOMBIE
-        amount: 2
+event:
+  key: my-event
+  enabled: true
+  name: "My Event"
+  chance: 100
+  duration: 20
+  icon: NETHER_STAR
+  min-players: 1
+  allowed-worlds: []
+  start-message: "&a%event% has started."
+  end-message: "&7%event% has ended."
+  bossbar-title: "&d%event%"
+  actions:
+    opening-title:
+      type: title
+      target: all-players
+      title: "&d%event%"
+      subtitle: "&7Good luck."
+    first-wave:
+      type: spawn-mob
+      target: random-players
+      target-count: 2
+      chance: 75
+      delay-seconds: 3
+      entity: ZOMBIE
+      amount: 2
 ```
 
 ## Top-Level Event Fields

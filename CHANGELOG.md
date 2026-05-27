@@ -1,53 +1,43 @@
 # Changelog
 
-## 1.0.0 - 2026-05-03
+## Latest Changes
 
 ### Added
 
-- Data-driven custom event system under `custom-events` in `config.yml`.
-- Configurable event metadata: `name`, `chance`, `duration`, `icon`, `min-players`, `allowed-worlds`, `start-message`, `end-message`, and `bossbar-title`.
-- Configurable action pipeline with delayed, repeating, targeted, and chance-gated actions.
-- Supported custom action types:
-  - `message`
-  - `sound`
-  - `potion`
-  - `teleport`
-  - `spawn-mob`
-  - `strike-lightning`
-  - `spawn-tnt`
-  - `velocity`
-  - `ignite`
-  - `economy-reward`
-  - `title`
-  - `console-command`
-  - `player-command`
-- New action fields for custom events:
-  - `target-count`
-  - `chance`
-  - `fade-in-ticks`
-  - `stay-ticks`
-  - `fade-out-ticks`
+- Survival streak rewards for players who finish events alive.
+- Configurable streak reward milestones under `streak-rewards.milestones`.
+- Support for streak reward modes:
+  - `vault`
+  - `item`
+  - `custom-item`
   - `command`
-- Five preset v1.0 custom events:
-  - `meteor-shower`
-  - `gravity-well`
-  - `hot-potato`
-  - `jackpot-rush`
-  - `blink-surge`
-- Validation for custom events during plugin startup and reload.
-- Full custom event reference in `CUSTOM_EVENTS.md`.
-- Extra GUI event details for configured events:
-  - duration
-  - minimum players
+- Player streak reset when they die or leave during an active event.
+- New listener for tracking player survival state during events.
+- File-based custom event loading from the plugin `events/` folder.
+- Example custom event files:
+  - `meteor-shower.yml`
+  - `gravity-well.yml`
+  - `hot-potato.yml`
+- Saving custom event chance changes back into each event file.
+- Player voting GUI for upcoming events.
+- Vote-based event priority when the next random event is selected.
+- Configurable vote cost under `voting.cost`.
+- Automatic free voting fallback when Vault is unavailable.
+- New language messages for streak rewards and voting feedback.
 
 ### Changed
 
-- Event registration now reloads built-in and custom events together.
-- Event menu icons are resolved through the event contract so built-in and custom events share the same UI flow.
-- Queue, random selection, announcements, bossbar, placeholders, and GUI chance editing now work with custom events as first-class entries.
-- GUI queue input now supports middle click, `Q`, and `Ctrl+Q` for adding events to the queue.
-- Shipped config presets now demonstrate titles, command actions, per-action chance, custom start/end messages, custom bossbar text, and multi-target random selection.
+- Removed embedded custom events from the main `config.yml`.
+- Moved custom event configuration into separate `.yml` files inside `events/`.
+- Updated `/pe events` behavior:
+  - admins open the event management GUI
+  - regular players open the voting GUI
+- Changed streak reward config format from plain numeric values to structured entries with `mode` and `value`.
+- Updated custom event documentation to reflect the new file-based format.
 
-### Version
+### Notes
 
-- Plugin version bumped from `0.0.4` to `1.0.0`.
+- Voting resets when an event starts.
+- The first vote in a round costs money only if Vault economy is available.
+- Tied top-voted events are resolved through the existing weighted random selection.
+- you need to delete old folder called pulseevents because of new place for events and changed config.yml

@@ -11,8 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -26,7 +26,6 @@ public class EventsGuiListener implements Listener {
 
     private static final int INVENTORY_SIZE = 27;
     private static final int SUMMARY_SLOT = 26;
-    private static final String HOLDER_KEY = "pulseevents-events-menu";
 
     private final PulseEvents plugin;
     private final EventManager eventManager;
@@ -43,7 +42,7 @@ public class EventsGuiListener implements Listener {
             return false;
         }
 
-        player.openInventory(createInventory());
+        player.openInventory(createInventory(player));
         return true;
     }
 
@@ -53,7 +52,7 @@ public class EventsGuiListener implements Listener {
             return;
         }
 
-        if (!isEventsMenu(event.getView().getTopInventory())) {
+        if (!(event.getView().getTopInventory().getHolder() instanceof EventsMenuHolder holder)) {
             return;
         }
 
@@ -70,10 +69,15 @@ public class EventsGuiListener implements Listener {
         }
 
         PulseEvent pulseEvent = events.get(slot);
+        if (holder.mode == MenuMode.VOTING) {
+            handleVote(player, pulseEvent);
+            player.openInventory(createInventory(player));
+            return;
+        }
 
         if (isQueueClick(event.getClick())) {
             handleQueueAdd(player, pulseEvent);
-            player.openInventory(createInventory());
+            player.openInventory(createInventory(player));
             return;
         }
 
@@ -92,58 +96,57 @@ public class EventsGuiListener implements Listener {
                 "%chance%",
                 String.valueOf(updatedChance)
         ));
-        player.openInventory(createInventory());
+        player.openInventory(createInventory(player));
     }
 
-    private Inventory createInventory() {
-        Inventory inventory = Bukkit.createInventory(new EventsMenuHolder(), INVENTORY_SIZE, lang.get("gui.events.title"));
+    private Inventory createInventory(Player viewer) {
+        MenuMode mode = canManageEvents(viewer) ? MenuMode.ADMIN : MenuMode.VOTING;
+        Inventory inventory = Bukkit.createInventory(new EventsMenuHolder(mode), INVENTORY_SIZE, lang.get(mode.titleKey));
         List<PulseEvent> events = getSortedEvents();
 
         for (int i = 0; i < Math.min(events.size(), INVENTORY_SIZE); i++) {
             if (i == SUMMARY_SLOT) {
                 break;
             }
-            inventory.setItem(i, createEventItem(events.get(i)));
+            inventory.setItem(i, createEventItem(viewer, events.get(i), mode));
         }
 
-        inventory.setItem(SUMMARY_SLOT, createQueueSummaryItem());
-
+        inventory.setItem(SUMMARY_SLOT, mode == MenuMode.ADMIN ? createQueueSummaryItem() : createVotingSummaryItem());
         return inventory;
     }
 
-    private ItemStack createEventItem(PulseEvent pulseEvent) {
+    private ItemStack createEventItem(Player viewer, PulseEvent pulseEvent, MenuMode mode) {
         ItemStack item = new ItemStack(pulseEvent.getMenuMaterial());
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return item;
         }
 
-        meta.setDisplayName(lang.get(
-                "gui.events.item-name",
-                "%event%",
-                eventManager.getDisplayName(pulseEvent)
-        ));
+        meta.setDisplayName(lang.get("gui.events.item-name", "%event%", eventManager.getDisplayName(pulseEvent)));
 
         List<String> lore = new ArrayList<>();
-        lore.add(lang.get(
-                "gui.events.item-chance",
-                "%chance%",
-                String.valueOf(eventManager.getEventChance(pulseEvent))
-        ));
-        lore.add(lang.get("gui.events.item-left"));
-        lore.add(lang.get("gui.events.item-right"));
-        lore.add(lang.get("gui.events.item-shift-left"));
-        lore.add(lang.get("gui.events.item-shift-right"));
-        lore.add(lang.get("gui.events.item-middle"));
-        lore.add(lang.get(
-                "gui.events.item-queued",
-                "%amount%",
-                String.valueOf(countQueuedCopies(pulseEvent))
-        ));
+        lore.add(lang.get("gui.events.item-chance", "%chance%", String.valueOf(eventManager.getEventChance(pulseEvent))));
+        if (mode == MenuMode.ADMIN) {
+            lore.add(lang.get("gui.events.item-left"));
+            lore.add(lang.get("gui.events.item-right"));
+            lore.add(lang.get("gui.events.item-shift-left"));
+            lore.add(lang.get("gui.events.item-shift-right"));
+            lore.add(lang.get("gui.events.item-middle"));
+            lore.add(lang.get("gui.events.item-queued", "%amount%", String.valueOf(countQueuedCopies(pulseEvent))));
+        } else {
+            lore.add(lang.get("gui.voting.item-votes", "%amount%", String.valueOf(eventManager.getVoteCount(pulseEvent))));
+            lore.add(lang.get("gui.voting.item-cost", "%amount%", getVoteCostDisplay()));
+            lore.add(lang.get("gui.voting.item-click"));
+            if (eventManager.hasActiveVote(viewer, pulseEvent)) {
+                lore.add(lang.get("gui.voting.item-selected"));
+            }
+        }
+
         if (pulseEvent instanceof ConfiguredPulseEvent configuredPulseEvent) {
             lore.add(lang.get("gui.events.item-duration", "%seconds%", String.valueOf(configuredPulseEvent.getDuration())));
             lore.add(lang.get("gui.events.item-min-players", "%amount%", String.valueOf(configuredPulseEvent.getMinPlayers())));
         }
+
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
@@ -158,14 +161,25 @@ public class EventsGuiListener implements Listener {
         }
 
         meta.setDisplayName(lang.get("gui.events.queue-name"));
-
         List<String> lore = new ArrayList<>();
-        lore.add(lang.get(
-                "gui.events.queue-size",
-                "%amount%",
-                String.valueOf(eventManager.getQueuedEventDisplayNames().size())
-        ));
+        lore.add(lang.get("gui.events.queue-size", "%amount%", String.valueOf(eventManager.getQueuedEventDisplayNames().size())));
         lore.add(lang.get("gui.events.queue-hint"));
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createVotingSummaryItem() {
+        ItemStack item = new ItemStack(Material.EMERALD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
+
+        meta.setDisplayName(lang.get("gui.voting.summary-name"));
+        List<String> lore = new ArrayList<>();
+        lore.add(lang.get("gui.voting.summary-cost", "%amount%", getVoteCostDisplay()));
+        lore.add(lang.get("gui.voting.summary-note"));
         meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
@@ -175,10 +189,6 @@ public class EventsGuiListener implements Listener {
         List<PulseEvent> events = eventManager.getRegisteredEvents();
         events.sort(Comparator.comparing(eventManager::getDisplayName));
         return events;
-    }
-
-    private boolean isEventsMenu(Inventory inventory) {
-        return inventory != null && inventory.getHolder() instanceof EventsMenuHolder;
     }
 
     private int resolveChange(ClickType clickType) {
@@ -209,11 +219,7 @@ public class EventsGuiListener implements Listener {
         }
 
         if (!eventManager.enqueueEvent(pulseEvent.getName())) {
-            player.sendMessage(lang.getWithPrefix(
-                    "command.queue.invalid-event",
-                    "%event%",
-                    eventManager.getDisplayName(pulseEvent)
-            ));
+            player.sendMessage(lang.getWithPrefix("command.queue.invalid-event", "%event%", eventManager.getDisplayName(pulseEvent)));
             return;
         }
 
@@ -224,6 +230,63 @@ public class EventsGuiListener implements Listener {
                 "%amount%",
                 String.valueOf(countQueuedCopies(pulseEvent))
         ));
+    }
+
+    private void handleVote(Player player, PulseEvent pulseEvent) {
+        if (!eventManager.isEventsSystemEnabled()) {
+            player.sendMessage(lang.getWithPrefix("command.system-disabled"));
+            return;
+        }
+
+        if (eventManager.isEventRunning()) {
+            player.sendMessage(lang.getWithPrefix("gui.voting.event-running"));
+            return;
+        }
+
+        if (!eventManager.hasAnyActiveVote(player)) {
+            double cost = plugin.getConfig().getDouble("voting.cost", 0.0D);
+            if (cost > 0.0D && plugin.getEconomyManager().isAvailable()) {
+                if (!plugin.getEconomyManager().has(player, cost)) {
+                    player.sendMessage(lang.getWithPrefix(
+                            "gui.voting.not-enough-money",
+                            "%amount%",
+                            plugin.getEconomyManager().format(cost)
+                    ));
+                    return;
+                }
+
+                if (!plugin.getEconomyManager().withdraw(player, cost)) {
+                    player.sendMessage(lang.getWithPrefix("gui.voting.payment-failed"));
+                    return;
+                }
+            }
+        }
+
+        if (!eventManager.voteForEvent(player, pulseEvent)) {
+            player.sendMessage(lang.getWithPrefix("gui.voting.vote-failed"));
+            return;
+        }
+
+        player.sendMessage(lang.getWithPrefix(
+                "gui.voting.vote-cast",
+                "%event%",
+                eventManager.getDisplayName(pulseEvent),
+                "%votes%",
+                String.valueOf(eventManager.getVoteCount(pulseEvent))
+        ));
+    }
+
+    private boolean canManageEvents(Player player) {
+        return player.isOp() || player.hasPermission("pulseevents.admin");
+    }
+
+    private String getVoteCostDisplay() {
+        double cost = plugin.getConfig().getDouble("voting.cost", 0.0D);
+        if (!plugin.getEconomyManager().isAvailable() || cost <= 0.0D) {
+            return lang.get("gui.voting.free");
+        }
+
+        return plugin.getEconomyManager().format(cost);
     }
 
     private int countQueuedCopies(PulseEvent pulseEvent) {
@@ -239,10 +302,27 @@ public class EventsGuiListener implements Listener {
         return count;
     }
 
+    private enum MenuMode {
+        ADMIN("gui.events.title"),
+        VOTING("gui.voting.title");
+
+        private final String titleKey;
+
+        MenuMode(String titleKey) {
+            this.titleKey = titleKey;
+        }
+    }
+
     private static final class EventsMenuHolder implements org.bukkit.inventory.InventoryHolder {
+        private final MenuMode mode;
+
+        private EventsMenuHolder(MenuMode mode) {
+            this.mode = mode;
+        }
+
         @Override
         public Inventory getInventory() {
-            return Bukkit.createInventory(this, INVENTORY_SIZE, HOLDER_KEY);
+            return Bukkit.createInventory(this, INVENTORY_SIZE);
         }
     }
 }

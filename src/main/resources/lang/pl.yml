@@ -65,6 +65,8 @@ event:
   coin-rain:
     reward-received: "&aOtrzymales nagrode monetarna: &f%amount%"
     deposit-failed: "&cNie udalo sie dodac nagrody do twojego salda."
+  streak:
+    reward-received: "&aPrzetrwales &f%streak% &aeventy z rzedu i otrzymales &f%reward%&a."
   target:
     no-players: "&cBrak graczy online do namierzenia."
     selected: "&cCEL: &e%player%"
@@ -114,6 +116,21 @@ gui:
     queue-name: "&6Kolejka Eventow"
     queue-size: "&7Eventy w kolejce: &f%amount%"
     queue-hint: "&7Uzyj srodkowego przycisku lub Q, aby szybko dodac event."
+  voting:
+    title: "&8Glosowanie Na Event"
+    free: "Darmowe"
+    item-votes: "&7Glosy: &f%amount%"
+    item-cost: "&7Koszt glosu: &f%amount%"
+    item-click: "&aLewy przycisk: zaglosuj na ten event"
+    item-selected: "&bZaglosowales na ten event."
+    summary-name: "&6Glosowanie Eventow"
+    summary-cost: "&7Koszt pierwszego glosu: &f%amount%"
+    summary-note: "&7Event z najwieksza liczba glosow ma priorytet w nastepnej rundzie."
+    vote-cast: "&aZaglosowales na &f%event%&a. Lacznie glosow: &f%votes%&a."
+    not-enough-money: "&cPotrzebujesz &f%amount% &caby zaglosowac."
+    payment-failed: "&cNie udalo sie pobrac oplaty za glos."
+    vote-failed: "&cNie udalo sie zapisac twojego glosu."
+    event-running: "&cNie mozesz glosowac podczas aktywnego eventu."
 
 milk-blocked: "&cNie mozesz uzywac mleka podczas aktywnego eventu."
 

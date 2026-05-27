@@ -32,6 +32,19 @@ public class EconomyManager {
         return response.transactionSuccess();
     }
 
+    public boolean has(Player player, double amount) {
+        return economy != null && economy.has(player, amount);
+    }
+
+    public boolean withdraw(Player player, double amount) {
+        if (economy == null) {
+            return false;
+        }
+
+        EconomyResponse response = economy.withdrawPlayer(player, amount);
+        return response.transactionSuccess();
+    }
+
     public String format(double amount) {
         if (economy != null) {
             return economy.format(amount);

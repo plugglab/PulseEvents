@@ -65,6 +65,8 @@ event:
   coin-rain:
     reward-received: "&aYou collected a coin reward: &f%amount%"
     deposit-failed: "&cThe reward could not be added to your balance."
+  streak:
+    reward-received: "&aYou survived &f%streak% &aevents in a row and earned &f%reward%&a."
   target:
     no-players: "&cThere are no online players to target."
     selected: "&cTARGET: &e%player%"
@@ -114,6 +116,21 @@ gui:
     queue-name: "&6Event Queue"
     queue-size: "&7Queued events: &f%amount%"
     queue-hint: "&7Use middle click or Q on an event to queue it instantly."
+  voting:
+    title: "&8Vote For Event"
+    free: "Free"
+    item-votes: "&7Votes: &f%amount%"
+    item-cost: "&7Vote cost: &f%amount%"
+    item-click: "&aLeft click: vote for this event"
+    item-selected: "&bYou voted for this event."
+    summary-name: "&6Event Voting"
+    summary-cost: "&7First vote cost: &f%amount%"
+    summary-note: "&7Highest voted event gets priority next round."
+    vote-cast: "&aYou voted for &f%event%&a. Total votes: &f%votes%&a."
+    not-enough-money: "&cYou need &f%amount% &cto vote."
+    payment-failed: "&cYour vote payment could not be processed."
+    vote-failed: "&cYour vote could not be saved."
+    event-running: "&cYou cannot vote while an event is running."
 
 milk-blocked: "&cYou cannot use milk during an active event."
 

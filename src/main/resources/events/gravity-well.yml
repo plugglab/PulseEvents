@@ -1,0 +1,32 @@
+event:
+  key: gravity-well
+  enabled: true
+  name: "Gravity Well"
+  chance: 110
+  duration: 20
+  icon: CRYING_OBSIDIAN
+  min-players: 1
+  allowed-worlds: []
+  actions:
+    warning:
+      type: message
+      target: all-players
+      message: "&5Gravity is collapsing around you."
+    pull:
+      type: velocity
+      target: all-players
+      delay-seconds: 1
+      repeat-every-seconds: 2
+      repeat-times: 8
+      velocity:
+        x: 0.0
+        y: -0.2
+        z: 0.0
+    shock:
+      type: strike-lightning
+      target: random-player
+      delay-seconds: 6
+      repeat-every-seconds: 5
+      repeat-times: 3
+      chance: 60
+      effect-only: true

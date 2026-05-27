@@ -1,0 +1,44 @@
+event:
+  key: meteor-shower
+  enabled: true
+  name: "Meteor Shower"
+  chance: 125
+  duration: 25
+  icon: MAGMA_BLOCK
+  min-players: 1
+  allowed-worlds: []
+  start-message: "&cMeteor Shower has started."
+  end-message: "&7The meteor shower is over."
+  bossbar-title: "&cMeteor Shower"
+  actions:
+    opening-title:
+      type: title
+      target: all-players
+      title: "&cMeteor Shower"
+      subtitle: "&7Take cover."
+      fade-in-ticks: 10
+      stay-ticks: 50
+      fade-out-ticks: 15
+    intro-message:
+      type: message
+      target: all-players
+      message: "&cThe sky is breaking apart. Take cover."
+    intro-sound:
+      type: sound
+      target: all-players
+      sound: ENTITY_ENDER_DRAGON_GROWL
+      volume: 0.8
+      pitch: 0.8
+    impact-wave:
+      type: spawn-tnt
+      target: all-players
+      delay-seconds: 2
+      repeat-every-seconds: 4
+      repeat-times: 5
+      amount: 2
+      fuse-ticks: 50
+      explosion-power: 3.0
+      offset:
+        x: 0.0
+        y: 18.0
+        z: 0.0

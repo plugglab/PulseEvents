@@ -1,0 +1,33 @@
+event:
+  key: hot-potato
+  enabled: true
+  name: "Hot Potato"
+  chance: 95
+  duration: 18
+  icon: BLAZE_POWDER
+  min-players: 1
+  allowed-worlds: []
+  actions:
+    target-call:
+      type: message
+      target: random-players
+      target-count: 2
+      message: "&6You are burning up. Keep moving."
+    burn:
+      type: ignite
+      target: random-players
+      target-count: 2
+      delay-seconds: 0
+      repeat-every-seconds: 4
+      repeat-times: 4
+      fire-ticks: 60
+    panic:
+      type: potion
+      target: random-players
+      target-count: 2
+      delay-seconds: 0
+      repeat-every-seconds: 4
+      repeat-times: 4
+      effect: SPEED
+      effect-duration-seconds: 3
+      amplifier: 1

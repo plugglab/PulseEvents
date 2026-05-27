@@ -18,6 +18,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,8 +32,10 @@ public class ConfiguredPulseEvent implements PulseEvent {
     private final LanguageManager lang;
     private final EconomyManager economyManager;
     private final WorldCheck worldCheck;
+    private final File sourceFile;
     private final String key;
     private final String displayName;
+    private int chance;
     private final int durationSeconds;
     private final Material menuMaterial;
     private final int minPlayers;
@@ -49,8 +52,10 @@ public class ConfiguredPulseEvent implements PulseEvent {
             LanguageManager lang,
             EconomyManager economyManager,
             WorldCheck worldCheck,
+            File sourceFile,
             String key,
             String displayName,
+            int chance,
             int durationSeconds,
             Material menuMaterial,
             int minPlayers,
@@ -64,8 +69,10 @@ public class ConfiguredPulseEvent implements PulseEvent {
         this.lang = lang;
         this.economyManager = economyManager;
         this.worldCheck = worldCheck;
+        this.sourceFile = sourceFile;
         this.key = key;
         this.displayName = displayName;
+        this.chance = chance;
         this.durationSeconds = durationSeconds;
         this.menuMaterial = menuMaterial;
         this.minPlayers = minPlayers;
@@ -88,7 +95,7 @@ public class ConfiguredPulseEvent implements PulseEvent {
 
     @Override
     public String getChanceConfigPath() {
-        return "custom-events." + key + ".chance";
+        return "events/" + sourceFile.getName() + "#event.chance";
     }
 
     @Override
@@ -150,6 +157,18 @@ public class ConfiguredPulseEvent implements PulseEvent {
 
     public int getMinPlayers() {
         return minPlayers;
+    }
+
+    public int getChance() {
+        return chance;
+    }
+
+    public void setChance(int chance) {
+        this.chance = Math.max(0, chance);
+    }
+
+    public File getSourceFile() {
+        return sourceFile;
     }
 
     public List<String> getAllowedWorlds() {
@@ -351,10 +370,12 @@ public class ConfiguredPulseEvent implements PulseEvent {
             LanguageManager lang,
             EconomyManager economyManager,
             WorldCheck worldCheck,
+            File sourceFile,
             String key,
             ConfigurationSection section
     ) {
         String displayName = section.getString("name", toDisplayName(key));
+        int chance = Math.max(0, section.getInt("chance", 100));
         int durationSeconds = Math.max(5, section.getInt("duration", 30));
         Material menuMaterial = parseMaterial(section.getString("icon", "NETHER_STAR"));
         int minPlayers = Math.max(1, section.getInt("min-players", 1));
@@ -380,8 +401,10 @@ public class ConfiguredPulseEvent implements PulseEvent {
                 lang,
                 economyManager,
                 worldCheck,
+                sourceFile,
                 key,
                 displayName,
+                chance,
                 durationSeconds,
                 menuMaterial,
                 minPlayers,

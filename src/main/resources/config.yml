@@ -37,175 +37,22 @@ events:
   spin:
     chance: 100
 
-custom-events:
-  meteor-shower:
-    enabled: true
-    name: "Meteor Shower"
-    chance: 125
-    duration: 25
-    icon: MAGMA_BLOCK
-    min-players: 1
-    allowed-worlds: []
-    start-message: "&cMeteor Shower has started."
-    end-message: "&7The meteor shower is over."
-    bossbar-title: "&cMeteor Shower"
-    actions:
-      opening-title:
-        type: title
-        target: all-players
-        title: "&cMeteor Shower"
-        subtitle: "&7Take cover."
-        fade-in-ticks: 10
-        stay-ticks: 50
-        fade-out-ticks: 15
-      intro-message:
-        type: message
-        target: all-players
-        message: "&cThe sky is breaking apart. Take cover."
-      intro-sound:
-        type: sound
-        target: all-players
-        sound: ENTITY_ENDER_DRAGON_GROWL
-        volume: 0.8
-        pitch: 0.8
-      impact-wave:
-        type: spawn-tnt
-        target: all-players
-        delay-seconds: 2
-        repeat-every-seconds: 4
-        repeat-times: 5
-        amount: 2
-        fuse-ticks: 50
-        explosion-power: 3.0
-        offset:
-          x: 0.0
-          y: 18.0
-          z: 0.0
-  gravity-well:
-    enabled: true
-    name: "Gravity Well"
-    chance: 110
-    duration: 20
-    icon: CRYING_OBSIDIAN
-    min-players: 1
-    allowed-worlds: []
-    actions:
-      warning:
-        type: message
-        target: all-players
-        message: "&5Gravity is collapsing around you."
-      pull:
-        type: velocity
-        target: all-players
-        delay-seconds: 1
-        repeat-every-seconds: 2
-        repeat-times: 8
-        velocity:
-          x: 0.0
-          y: -0.2
-          z: 0.0
-      shock:
-        type: strike-lightning
-        target: random-player
-        delay-seconds: 6
-        repeat-every-seconds: 5
-        repeat-times: 3
-        chance: 60
-        effect-only: true
-  hot-potato:
-    enabled: true
-    name: "Hot Potato"
-    chance: 95
-    duration: 18
-    icon: BLAZE_POWDER
-    min-players: 1
-    allowed-worlds: []
-    actions:
-      target-call:
-        type: message
-        target: random-players
-        target-count: 2
-        message: "&6You are burning up. Keep moving."
-      burn:
-        type: ignite
-        target: random-players
-        target-count: 2
-        delay-seconds: 0
-        repeat-every-seconds: 4
-        repeat-times: 4
-        fire-ticks: 60
-      panic:
-        type: potion
-        target: random-players
-        target-count: 2
-        delay-seconds: 0
-        repeat-every-seconds: 4
-        repeat-times: 4
-        effect: SPEED
-        effect-duration-seconds: 3
-        amplifier: 1
-  jackpot-rush:
-    enabled: true
-    name: "Jackpot Rush"
-    chance: 70
-    duration: 15
-    icon: EMERALD
-    min-players: 1
-    allowed-worlds: []
-    actions:
-      celebration:
-        type: sound
-        target: all-players
-        sound: ENTITY_PLAYER_LEVELUP
-        volume: 1.0
-        pitch: 1.1
-      bonus-command:
-        type: console-command
-        target: random-player
-        command: "say %player% hit the jackpot during %event%."
-      payout:
-        type: economy-reward
-        target: all-players
-        delay-seconds: 1
-        repeat-every-seconds: 4
-        repeat-times: 3
-        money:
-          min: 5.0
-          max: 15.0
-  blink-surge:
-    enabled: true
-    name: "Blink Surge"
-    chance: 85
-    duration: 20
-    icon: CHORUS_FRUIT
-    min-players: 1
-    allowed-worlds: []
-    actions:
-      opening-title:
-        type: title
-        target: all-players
-        title: "&dBlink Surge"
-        subtitle: "&7Reality is unstable."
-      warning:
-        type: message
-        target: all-players
-        message: "&dReality is unstable. Your position will not hold."
-      blink:
-        type: teleport
-        target: all-players
-        delay-seconds: 1
-        repeat-every-seconds: 5
-        repeat-times: 4
-        random-offset:
-          x:
-            min: -8.0
-            max: 8.0
-          y:
-            min: 0.0
-            max: 2.0
-          z:
-            min: -8.0
-            max: 8.0
+streak-rewards:
+  milestones:
+    #modes vault/command/item
+    #vaules for command and item must be in "" (exp value: "DIAMOND 3")
+    "3":
+      mode: vault
+      value: 5.0
+    "5":
+      mode: vault
+      value: 15.0
+    "10":
+      mode: vault
+      value: 50.0
+
+voting:
+  cost: 100.0
 
 announcements:
   times:
