@@ -1,6 +1,31 @@
 # Changelog
 
-## Latest Changes
+## 3.0
+
+### Added
+
+- Separate `/pe vote` command for player voting.
+- `/pe votes` command for vote inspection and reset.
+- `/pe streak` command for streak inspection and reset.
+- `/pe stats` command for event and vote statistics.
+- `/pe leaderboard` command for the streak leaderboard.
+- `/pe validate` command for custom event validation.
+- Placeholder support for current-event time remaining, leading event, leading votes, player streak, top streak, and next milestone.
+- Bossbar title support for `%time%`, `%leading%`, and `%votes%` placeholders.
+- Per-event voting enable and vote-cost override support for custom events.
+- Custom event category support.
+- Event and vote statistics tracking for reporting.
+
+### Changed
+
+- `/pe events` is now the admin event editor surface; regular players use `/pe vote` for voting.
+- Voting UI now uses per-event vote costs when a custom event overrides the base cost.
+- Event GUI now shows custom event categories and voting state in the lore.
+- `next_upd.md` now tracks the next remaining feature work after this implementation pass.
+- Vote handling charges the configured cost before the vote is recorded.
+- Changelog entries are organized by plugin version instead of by date.
+
+### Previous
 
 ### Added
 
@@ -40,4 +65,4 @@
 - Voting resets when an event starts.
 - The first vote in a round costs money only if Vault economy is available.
 - Tied top-voted events are resolved through the existing weighted random selection.
-- you need to delete old folder called pulseevents because of new place for events and changed config.yml
+- You need to delete the old `pulseevents` folder because of the new events location and changed `config.yml`.

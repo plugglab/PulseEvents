@@ -42,7 +42,20 @@ public class EventsGuiListener implements Listener {
             return false;
         }
 
-        player.openInventory(createInventory(player));
+        if (!canManageEvents(player)) {
+            return false;
+        }
+
+        player.openInventory(createAdminInventory(player));
+        return true;
+    }
+
+    public boolean openVotingFor(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            return false;
+        }
+
+        player.openInventory(createVotingInventory(player));
         return true;
     }
 
@@ -71,13 +84,13 @@ public class EventsGuiListener implements Listener {
         PulseEvent pulseEvent = events.get(slot);
         if (holder.mode == MenuMode.VOTING) {
             handleVote(player, pulseEvent);
-            player.openInventory(createInventory(player));
+            player.openInventory(createVotingInventory(player));
             return;
         }
 
         if (isQueueClick(event.getClick())) {
             handleQueueAdd(player, pulseEvent);
-            player.openInventory(createInventory(player));
+            player.openInventory(createAdminInventory(player));
             return;
         }
 
@@ -96,10 +109,10 @@ public class EventsGuiListener implements Listener {
                 "%chance%",
                 String.valueOf(updatedChance)
         ));
-        player.openInventory(createInventory(player));
+        player.openInventory(createAdminInventory(player));
     }
 
-    private Inventory createInventory(Player viewer) {
+    private Inventory createAdminInventory(Player viewer) {
         MenuMode mode = canManageEvents(viewer) ? MenuMode.ADMIN : MenuMode.VOTING;
         Inventory inventory = Bukkit.createInventory(new EventsMenuHolder(mode), INVENTORY_SIZE, lang.get(mode.titleKey));
         List<PulseEvent> events = getSortedEvents();
@@ -112,6 +125,21 @@ public class EventsGuiListener implements Listener {
         }
 
         inventory.setItem(SUMMARY_SLOT, mode == MenuMode.ADMIN ? createQueueSummaryItem() : createVotingSummaryItem());
+        return inventory;
+    }
+
+    private Inventory createVotingInventory(Player viewer) {
+        Inventory inventory = Bukkit.createInventory(new EventsMenuHolder(MenuMode.VOTING), INVENTORY_SIZE, lang.get(MenuMode.VOTING.titleKey));
+        List<PulseEvent> events = getVotableEvents();
+
+        for (int i = 0; i < Math.min(events.size(), INVENTORY_SIZE); i++) {
+            if (i == SUMMARY_SLOT) {
+                break;
+            }
+            inventory.setItem(i, createEventItem(viewer, events.get(i), MenuMode.VOTING));
+        }
+
+        inventory.setItem(SUMMARY_SLOT, createVotingSummaryItem());
         return inventory;
     }
 
@@ -135,7 +163,15 @@ public class EventsGuiListener implements Listener {
             lore.add(lang.get("gui.events.item-queued", "%amount%", String.valueOf(countQueuedCopies(pulseEvent))));
         } else {
             lore.add(lang.get("gui.voting.item-votes", "%amount%", String.valueOf(eventManager.getVoteCount(pulseEvent))));
-            lore.add(lang.get("gui.voting.item-cost", "%amount%", getVoteCostDisplay()));
+            lore.add(lang.get("gui.voting.item-cost", "%amount%", getVoteCostDisplay(pulseEvent)));
+            if (pulseEvent instanceof ConfiguredPulseEvent configuredPulseEvent) {
+                if (!configuredPulseEvent.getCategory().isBlank()) {
+                    lore.add(lang.get("gui.events.item-category", "%category%", configuredPulseEvent.getCategory()));
+                }
+                if (configuredPulseEvent.getVoteCostOverride() > 0.0D) {
+                    lore.add(lang.get("gui.voting.item-cost-override", "%amount%", plugin.getEconomyManager().format(configuredPulseEvent.getVoteCostOverride())));
+                }
+            }
             lore.add(lang.get("gui.voting.item-click"));
             if (eventManager.hasActiveVote(viewer, pulseEvent)) {
                 lore.add(lang.get("gui.voting.item-selected"));
@@ -178,7 +214,7 @@ public class EventsGuiListener implements Listener {
 
         meta.setDisplayName(lang.get("gui.voting.summary-name"));
         List<String> lore = new ArrayList<>();
-        lore.add(lang.get("gui.voting.summary-cost", "%amount%", getVoteCostDisplay()));
+        lore.add(lang.get("gui.voting.summary-cost", "%amount%", getVoteCostDisplay(null)));
         lore.add(lang.get("gui.voting.summary-note"));
         meta.setLore(lore);
         item.setItemMeta(meta);
@@ -187,6 +223,17 @@ public class EventsGuiListener implements Listener {
 
     private List<PulseEvent> getSortedEvents() {
         List<PulseEvent> events = eventManager.getRegisteredEvents();
+        events.sort(Comparator.comparing(eventManager::getDisplayName));
+        return events;
+    }
+
+    private List<PulseEvent> getVotableEvents() {
+        List<PulseEvent> events = new ArrayList<>();
+        for (PulseEvent event : eventManager.getRegisteredEvents()) {
+            if (eventManager.isEventVotable(event)) {
+                events.add(event);
+            }
+        }
         events.sort(Comparator.comparing(eventManager::getDisplayName));
         return events;
     }
@@ -243,22 +290,20 @@ public class EventsGuiListener implements Listener {
             return;
         }
 
-        if (!eventManager.hasAnyActiveVote(player)) {
-            double cost = plugin.getConfig().getDouble("voting.cost", 0.0D);
-            if (cost > 0.0D && plugin.getEconomyManager().isAvailable()) {
-                if (!plugin.getEconomyManager().has(player, cost)) {
-                    player.sendMessage(lang.getWithPrefix(
-                            "gui.voting.not-enough-money",
-                            "%amount%",
-                            plugin.getEconomyManager().format(cost)
-                    ));
-                    return;
-                }
+        double cost = resolveVoteCost(pulseEvent);
+        if (cost > 0.0D && plugin.getEconomyManager().isAvailable()) {
+            if (!plugin.getEconomyManager().has(player, cost)) {
+                player.sendMessage(lang.getWithPrefix(
+                        "gui.voting.not-enough-money",
+                        "%amount%",
+                        plugin.getEconomyManager().format(cost)
+                ));
+                return;
+            }
 
-                if (!plugin.getEconomyManager().withdraw(player, cost)) {
-                    player.sendMessage(lang.getWithPrefix("gui.voting.payment-failed"));
-                    return;
-                }
+            if (!plugin.getEconomyManager().withdraw(player, cost)) {
+                player.sendMessage(lang.getWithPrefix("gui.voting.payment-failed"));
+                return;
             }
         }
 
@@ -280,13 +325,21 @@ public class EventsGuiListener implements Listener {
         return player.isOp() || player.hasPermission("pulseevents.admin");
     }
 
-    private String getVoteCostDisplay() {
-        double cost = plugin.getConfig().getDouble("voting.cost", 0.0D);
+    private String getVoteCostDisplay(PulseEvent pulseEvent) {
+        double cost = resolveVoteCost(pulseEvent);
         if (!plugin.getEconomyManager().isAvailable() || cost <= 0.0D) {
             return lang.get("gui.voting.free");
         }
 
         return plugin.getEconomyManager().format(cost);
+    }
+
+    private double resolveVoteCost(PulseEvent pulseEvent) {
+        double baseCost = plugin.getConfig().getDouble("voting.cost", 0.0D);
+        if (pulseEvent instanceof ConfiguredPulseEvent configuredPulseEvent && configuredPulseEvent.getVoteCostOverride() > 0.0D) {
+            return configuredPulseEvent.getVoteCostOverride();
+        }
+        return baseCost;
     }
 
     private int countQueuedCopies(PulseEvent pulseEvent) {

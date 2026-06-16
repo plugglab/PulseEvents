@@ -82,6 +82,29 @@ public class CustomEventManager {
         return events;
     }
 
+    public List<String> validateCustomEvents() {
+        List<String> problems = new ArrayList<>();
+        File eventsFolder = new File(plugin.getDataFolder(), "events");
+        File[] eventFiles = eventsFolder.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (eventFiles == null) {
+            return problems;
+        }
+
+        for (File eventFile : eventFiles) {
+            YamlConfiguration configuration = YamlConfiguration.loadConfiguration(eventFile);
+            ConfigurationSection section = configuration.getConfigurationSection("event");
+            if (section == null) {
+                problems.add(eventFile.getName() + ": missing top-level event section");
+                continue;
+            }
+
+            String key = section.getString("key", stripExtension(eventFile.getName()));
+            problems.addAll(validateEventSection(key, section));
+        }
+
+        return problems;
+    }
+
     public void saveEventChance(ConfiguredPulseEvent event) {
         File sourceFile = event.getSourceFile();
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(sourceFile);

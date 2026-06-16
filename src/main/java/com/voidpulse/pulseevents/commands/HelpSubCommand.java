@@ -27,6 +27,12 @@ public class HelpSubCommand extends BaseSubCommand {
         sender.sendMessage(lang.get("command.help.line-stop"));
         sender.sendMessage(lang.get("command.help.line-status"));
         sender.sendMessage(lang.get("command.help.line-events"));
+        sender.sendMessage(lang.get("command.help.line-vote"));
+        sender.sendMessage(lang.get("command.help.line-votes"));
+        sender.sendMessage(lang.get("command.help.line-streak"));
+        sender.sendMessage(lang.get("command.help.line-stats"));
+        sender.sendMessage(lang.get("command.help.line-leaderboard"));
+        sender.sendMessage(lang.get("command.help.line-validate"));
         sender.sendMessage(lang.get("command.help.line-queue"));
         sender.sendMessage(lang.get("command.help.line-toggle"));
         sender.sendMessage(lang.get("command.help.line-reload"));

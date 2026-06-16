@@ -24,6 +24,7 @@ public class EventsSubCommand extends BaseSubCommand {
 
         List<String> events = eventManager.getRegisteredEventDisplayNames();
         sender.sendMessage(lang.getWithPrefix("command.events.header"));
+        sender.sendMessage(lang.getWithPrefix("command.events.admin-only"));
 
         for (int i = 0; i < events.size(); i++) {
             sender.sendMessage(lang.get(

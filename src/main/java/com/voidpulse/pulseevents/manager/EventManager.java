@@ -43,6 +43,9 @@ public class EventManager {
     private final Set<UUID> currentEventSurvivors = new HashSet<>();
     private final Map<UUID, String> playerVotes = new HashMap<>();
     private final Map<String, Integer> voteCounts = new HashMap<>();
+    private final Map<String, Integer> eventStartCounts = new HashMap<>();
+    private final Map<String, Integer> eventVoteTotals = new HashMap<>();
+    private long currentEventEndTimeMillis;
 
     public EventManager(JavaPlugin plugin, LiveUIManager liveUIManager, LanguageManager lang) {
         this.plugin = plugin;
@@ -130,6 +133,18 @@ public class EventManager {
             selectedEvent = selectWeightedRandomEvent(availableEvents);
         }
         return selectedEvent != null && startEvent(selectedEvent);
+    }
+
+    public boolean isEventVotable(PulseEvent event) {
+        if (event == null) {
+            return false;
+        }
+
+        if (event instanceof ConfiguredPulseEvent configuredPulseEvent) {
+            return configuredPulseEvent.isVoteEnabled();
+        }
+
+        return true;
     }
 
     public boolean enqueueEvent(String eventName) {
@@ -257,6 +272,7 @@ public class EventManager {
             currentEventSurvivors.clear();
         }
         current = null;
+        currentEventEndTimeMillis = 0L;
 
         if (eventToStop instanceof ConfiguredPulseEvent configuredPulseEvent
                 && configuredPulseEvent.getEndMessage() != null
@@ -306,7 +322,11 @@ public class EventManager {
     }
 
     public boolean voteForEvent(Player player, PulseEvent event) {
-        if (player == null || event == null || !eventsSystemEnabled || current != null) {
+        return voteForEvent(player, event, false);
+    }
+
+    public boolean voteForEvent(Player player, PulseEvent event, boolean chargeCost) {
+        if (player == null || event == null || !eventsSystemEnabled || current != null || !isEventVotable(event)) {
             return false;
         }
 
@@ -322,6 +342,22 @@ public class EventManager {
         }
 
         voteCounts.merge(normalizedKey, 1, Integer::sum);
+        eventVoteTotals.merge(normalizedKey, 1, Integer::sum);
+        return true;
+    }
+
+    public boolean removePlayerVote(Player player) {
+        if (player == null) {
+            return false;
+        }
+
+        UUID playerId = player.getUniqueId();
+        String previousVote = playerVotes.remove(playerId);
+        if (previousVote == null) {
+            return false;
+        }
+
+        decrementVote(previousVote);
         return true;
     }
 
@@ -383,6 +419,105 @@ public class EventManager {
         return current == null ? null : getDisplayName(current);
     }
 
+    public long getCurrentEventRemainingSeconds() {
+        if (current == null || currentEventEndTimeMillis <= 0L) {
+            return 0L;
+        }
+
+        long remainingMillis = currentEventEndTimeMillis - System.currentTimeMillis();
+        return Math.max(0L, (remainingMillis + 999L) / 1000L);
+    }
+
+    public String getLeadingEventDisplayName() {
+        PulseEvent leadingEvent = getLeadingVotedEvent();
+        return leadingEvent == null ? null : getDisplayName(leadingEvent);
+    }
+
+    public int getLeadingEventVoteCount() {
+        PulseEvent leadingEvent = getLeadingVotedEvent();
+        return leadingEvent == null ? 0 : getVoteCount(leadingEvent);
+    }
+
+    public Map<String, Integer> getVoteCountsByDisplayName() {
+        Map<String, Integer> result = new LinkedHashMap<>();
+
+        for (PulseEvent event : getRegisteredEvents()) {
+            int votes = getVoteCount(event);
+            if (votes > 0) {
+                result.put(getDisplayName(event), votes);
+            }
+        }
+
+        return result;
+    }
+
+    public Map<String, Integer> getEventStartCountsByDisplayName() {
+        Map<String, Integer> result = new LinkedHashMap<>();
+
+        for (PulseEvent event : getRegisteredEvents()) {
+            int count = eventStartCounts.getOrDefault(normalizeEventKey(event.getKey()), 0);
+            if (count > 0) {
+                result.put(getDisplayName(event), count);
+            }
+        }
+
+        return result;
+    }
+
+    public Map<String, Integer> getEventVoteTotalsByDisplayName() {
+        Map<String, Integer> result = new LinkedHashMap<>();
+
+        for (PulseEvent event : getRegisteredEvents()) {
+            int count = eventVoteTotals.getOrDefault(normalizeEventKey(event.getKey()), 0);
+            if (count > 0) {
+                result.put(getDisplayName(event), count);
+            }
+        }
+
+        return result;
+    }
+
+    public int getPlayerStreak(Player player) {
+        if (player == null) {
+            return 0;
+        }
+
+        return survivalStreaks.getOrDefault(player.getUniqueId(), 0);
+    }
+
+    public int getTopServerStreak() {
+        int top = 0;
+        for (int streak : survivalStreaks.values()) {
+            top = Math.max(top, streak);
+        }
+        return top;
+    }
+
+    public int getNextStreakMilestone(int currentStreak) {
+        List<Integer> milestones = new ArrayList<>(getSurvivalStreakMilestones().keySet());
+        Collections.sort(milestones);
+        for (int milestone : milestones) {
+            if (milestone > currentStreak) {
+                return milestone;
+            }
+        }
+        return 0;
+    }
+
+    public void resetPlayerStreak(Player player) {
+        if (player != null) {
+            survivalStreaks.remove(player.getUniqueId());
+        }
+    }
+
+    public void resetAllStreaks() {
+        survivalStreaks.clear();
+    }
+
+    public void resetVotes() {
+        clearVotes();
+    }
+
     public String getDisplayName(PulseEvent event) {
         String translationKey = "events." + getConfigKey(event) + ".name";
         return lang.getOrDefault(translationKey, event.getName());
@@ -405,6 +540,8 @@ public class EventManager {
         }
 
         current = event;
+        currentEventEndTimeMillis = System.currentTimeMillis() + (Math.max(0, event.getDuration()) * 1000L);
+        eventStartCounts.merge(normalizeEventKey(event.getKey()), 1, Integer::sum);
         cancelStopTask();
         snapshotCurrentEventSurvivors(event);
         clearVotes();
@@ -415,6 +552,7 @@ public class EventManager {
             plugin.getLogger().severe("Failed to start event " + event.getClass().getSimpleName() + ": " + exception.getMessage());
             currentEventSurvivors.clear();
             current = null;
+            currentEventEndTimeMillis = 0L;
 
             if (announcementManager != null) {
                 announcementManager.refreshSchedules();
@@ -453,6 +591,21 @@ public class EventManager {
         );
 
         return true;
+    }
+
+    private PulseEvent getLeadingVotedEvent() {
+        int highestVotes = 0;
+        PulseEvent leading = null;
+
+        for (PulseEvent event : events) {
+            int votes = getVoteCount(event);
+            if (votes > highestVotes) {
+                highestVotes = votes;
+                leading = event;
+            }
+        }
+
+        return highestVotes > 0 ? leading : null;
     }
 
     private List<PulseEvent> getAvailableRandomEvents() {

@@ -13,6 +13,11 @@ command:
     line-status: "&6/pe status &7- Pokaz status aktualnego eventu"
     line-events: "&6/pe events &7- Otworz menu szans eventow"
     line-queue: "&6/pe queue <add|list|remove|clear> &7- Zarzadzaj kolejka eventow FIFO"
+    line-votes: "&6/pe votes <list|reset> &7- Sprawdź lub zresetuj głosowania"
+    line-streak: "&6/pe streak <check|reset> &7- Sprawdź lub zresetuj serie graczy"
+    line-stats: "&6/pe stats &7- Pokaż statystyki wydarzeń i głosów"
+    line-leaderboard: "&6/pe leaderboard &7- Pokaż tabelę wyników serii"
+    line-validate: "&6/pe validate &7- Sprawdź poprawność plików zdarzeń niestandardowych"
     line-toggle: "&6/pe toggle <on|off> &7- Wlacz lub wylacz system eventow"
     line-reload: "&6/pe reload &7- Przeladuj config i pliki jezykowe"
     line-update: "&6/pe update &7- Sprawdz nowa wersje pluginu"
@@ -40,6 +45,33 @@ command:
     usage: "&eUzyj: &f/pe toggle <on|off>"
     enabled: "&aSystem eventow zostal wlaczony."
     disabled: "&cSystem eventow zostal wylaczony."
+  votes:
+    usage: "&eUżyj: &f/pe votes <list|reset>"
+    header: "&eAktualne głosy:"
+    empty: "&7Brak aktywnych głosów."
+    line: "&6%event%&7: &f%votes%"
+    reset: "&aWszystkie głosy zostały wyczyszczone."
+  streak:
+    usage: "&eUżyj: &f/pe streak <check|reset> [Gracz|all]"
+    check: "&e%player%&7 Seria: &f%streak%&7. Następny kamień milowy: &f%next%"
+    reset-all: "&aWszystkie serie zostały wyczyszczone."
+    reset-player: "&aWyczyszcono serie dla &f%player%&a."
+    player-not-found: "&cGracz nie odnaleziony: &f%player%"
+  stats:
+    header: "&eStatystyki eventów:"
+    running: "&7Aktualny event: &f%event%"
+    queue: "&7eventy w kolejce: &f%amount%"
+    top-streak: "&7Top passa: &f%amount%"
+    top-voted: "&7Event z największa liczbą głosów: &f%event%"
+    top-started: "&7Najczęściej rozpoczynane wydarzenie: &f%event%"
+  leaderboard:
+    header: "&eTablica liderów serii:"
+    empty: "&7Nie zarejestrowano jeszcze żadnych serii."
+    line: "&6%index%. &f%player% &7- &f%streak%"
+  validate:
+    header: "&eWeryfikacja zdarzeń niestandardowych:"
+    clean: "&aNie znaleziono problemów z walidacją."
+    line: "&c%message%"
   update:
     checking: "&7Sprawdzanie najnowszej wersji na GitHubie..."
   queue:

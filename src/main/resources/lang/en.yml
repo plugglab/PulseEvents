@@ -12,6 +12,12 @@ command:
     line-stop: "&6/pe stop &7- Stop the current event"
     line-status: "&6/pe status &7- Show the current event status"
     line-events: "&6/pe events &7- Open the event chances menu"
+    line-vote: "&6/pe vote [event] &7- Vote for an event or open the voting GUI"
+    line-votes: "&6/pe votes <list|reset> &7- Inspect or reset round votes"
+    line-streak: "&6/pe streak <check|reset> &7- Inspect or reset player streaks"
+    line-stats: "&6/pe stats &7- Show event and vote statistics"
+    line-leaderboard: "&6/pe leaderboard &7- Show the streak leaderboard"
+    line-validate: "&6/pe validate &7- Validate custom event files"
     line-queue: "&6/pe queue <add|list|remove|clear> &7- Manage the FIFO event queue"
     line-toggle: "&6/pe toggle <on|off> &7- Enable or disable the event system"
     line-reload: "&6/pe reload &7- Reload config and language files"
@@ -33,7 +39,39 @@ command:
     idle: "&eNo event is active right now."
   events:
     header: "&eRegistered events:"
+    admin-only: "&7Admins can edit chances in the GUI. Players should use &f/pe vote&7."
     line: "&6%index%. &f%event%"
+  vote:
+    players-only: "&cOnly players can vote."
+    no-voting-gui: "&cThe voting GUI is not available right now."
+    invalid-event: "&cUnknown votable event: &f%event%"
+  votes:
+    usage: "&eUse: &f/pe votes <list|reset>"
+    header: "&eCurrent votes:"
+    empty: "&7No active votes."
+    line: "&6%event%&7: &f%votes%"
+    reset: "&aAll votes have been cleared."
+  streak:
+    usage: "&eUse: &f/pe streak <check|reset> [player|all]"
+    check: "&e%player%&7 streak: &f%streak%&7. Next milestone: &f%next%"
+    reset-all: "&aAll streaks have been cleared."
+    reset-player: "&aCleared streak for &f%player%&a."
+    player-not-found: "&cPlayer not found: &f%player%"
+  stats:
+    header: "&eEvent statistics:"
+    running: "&7Current event: &f%event%"
+    queue: "&7Queued events: &f%amount%"
+    top-streak: "&7Top streak: &f%amount%"
+    top-voted: "&7Top voted event: &f%event%"
+    top-started: "&7Most started event: &f%event%"
+  leaderboard:
+    header: "&eStreak leaderboard:"
+    empty: "&7No streaks recorded yet."
+    line: "&6%index%. &f%player% &7- &f%streak%"
+  validate:
+    header: "&eCustom event validation:"
+    clean: "&aNo validation problems found."
+    line: "&c%message%"
   reload:
     success: "&aConfiguration and language files reloaded. Active language: &f%language%&a."
   toggle:
@@ -105,6 +143,7 @@ gui:
     item-chance: "&7Chance: &f%chance%"
     item-duration: "&7Duration: &f%seconds%s"
     item-min-players: "&7Minimum players: &f%amount%"
+    item-category: "&7Category: &f%category%"
     item-left: "&aLeft click: +5"
     item-right: "&cRight click: -5"
     item-shift-left: "&aShift + left click: +20"
@@ -121,6 +160,7 @@ gui:
     free: "Free"
     item-votes: "&7Votes: &f%amount%"
     item-cost: "&7Vote cost: &f%amount%"
+    item-cost-override: "&7Event override: &f%amount%"
     item-click: "&aLeft click: vote for this event"
     item-selected: "&bYou voted for this event."
     summary-name: "&6Event Voting"

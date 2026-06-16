@@ -43,6 +43,9 @@ public class ConfiguredPulseEvent implements PulseEvent {
     private final String startMessage;
     private final String endMessage;
     private final String bossBarTitle;
+    private final boolean voteEnabled;
+    private final double voteCostOverride;
+    private final String category;
     private final List<EventAction> actions;
     private final List<BukkitTask> activeTasks = new ArrayList<>();
     private final Random random = new Random();
@@ -63,6 +66,9 @@ public class ConfiguredPulseEvent implements PulseEvent {
             String startMessage,
             String endMessage,
             String bossBarTitle,
+            boolean voteEnabled,
+            double voteCostOverride,
+            String category,
             List<EventAction> actions
     ) {
         this.plugin = plugin;
@@ -80,6 +86,9 @@ public class ConfiguredPulseEvent implements PulseEvent {
         this.startMessage = startMessage;
         this.endMessage = endMessage;
         this.bossBarTitle = bossBarTitle;
+        this.voteEnabled = voteEnabled;
+        this.voteCostOverride = voteCostOverride;
+        this.category = category;
         this.actions = new ArrayList<>(actions);
     }
 
@@ -189,6 +198,18 @@ public class ConfiguredPulseEvent implements PulseEvent {
 
     public String getBossBarTitle() {
         return bossBarTitle;
+    }
+
+    public boolean isVoteEnabled() {
+        return voteEnabled;
+    }
+
+    public double getVoteCostOverride() {
+        return voteCostOverride;
+    }
+
+    public String getCategory() {
+        return category;
     }
 
     private void executeAction(EventAction action) {
@@ -383,6 +404,9 @@ public class ConfiguredPulseEvent implements PulseEvent {
         String startMessage = section.getString("start-message");
         String endMessage = section.getString("end-message");
         String bossBarTitle = section.getString("bossbar-title");
+        boolean voteEnabled = section.getBoolean("vote-enabled", true);
+        double voteCostOverride = Math.max(0.0D, section.getDouble("vote-cost-override", 0.0D));
+        String category = section.getString("category", "").trim();
         List<EventAction> actions = new ArrayList<>();
 
         for (MaplessSection actionSection : getActionSections(section.getConfigurationSection("actions"))) {
@@ -412,6 +436,9 @@ public class ConfiguredPulseEvent implements PulseEvent {
                 startMessage,
                 endMessage,
                 bossBarTitle,
+                voteEnabled,
+                voteCostOverride,
+                category,
                 actions
         );
     }

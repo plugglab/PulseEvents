@@ -7,6 +7,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import com.voidpulse.pulseevents.PulseEvents;
 
 import java.util.Locale;
 
@@ -35,9 +36,7 @@ public class LiveUIManager {
         stop();
 
         bossBar = Bukkit.createBossBar(
-                customTitle == null || customTitle.isBlank()
-                        ? lang.get("bossbar.title", "%event%", eventName)
-                        : lang.format(customTitle, "%event%", eventName),
+                resolveTitle(eventName, durationSeconds, customTitle),
                 getBarColor(),
                 getBarStyle()
         );
@@ -64,6 +63,7 @@ public class LiveUIManager {
             elapsedTicks[0]++;
             double progress = Math.max(0.0, 1.0 - ((double) elapsedTicks[0] / totalTicks));
             bossBar.setProgress(progress);
+            bossBar.setTitle(resolveTitle(eventName, Math.max(0, durationSeconds - (elapsedTicks[0] / 20)), customTitle));
         }, 1L, 1L);
     }
 
@@ -104,5 +104,27 @@ public class LiveUIManager {
         } catch (IllegalArgumentException ex) {
             return BarStyle.SOLID;
         }
+    }
+
+    private String resolveTitle(String eventName, int remainingSeconds, String customTitle) {
+        String source = customTitle == null || customTitle.isBlank()
+                ? plugin.getConfig().getString("bossbar.title", "&9Pulse Event: &f%event%")
+                : customTitle;
+
+        return lang.format(
+                source,
+                "%event%",
+                eventName,
+                "%time%",
+                String.valueOf(Math.max(0, remainingSeconds)),
+                "%leading%",
+                plugin instanceof PulseEvents pulseEvents && pulseEvents.getEventManager() != null
+                        ? String.valueOf(pulseEvents.getEventManager().getLeadingEventDisplayName())
+                        : "none",
+                "%votes%",
+                plugin instanceof PulseEvents pulseEvents && pulseEvents.getEventManager() != null
+                        ? String.valueOf(pulseEvents.getEventManager().getLeadingEventVoteCount())
+                        : "0"
+        );
     }
 }

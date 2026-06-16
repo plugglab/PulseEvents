@@ -30,6 +30,12 @@ public class PECommand implements CommandExecutor, TabCompleter {
         register(new StopSubCommand(plugin));
         register(new StatusSubCommand(plugin));
         register(new QueueSubCommand(plugin));
+        register(new VoteSubCommand(plugin));
+        register(new VotesSubCommand(plugin));
+        register(new StreakSubCommand(plugin));
+        register(new StatsSubCommand(plugin));
+        register(new LeaderboardSubCommand(plugin));
+        register(new ValidateSubCommand(plugin));
         register(new EventsSubCommand(plugin));
         register(new ToggleSubCommand(plugin));
         register(new ReloadSubCommand(plugin));
@@ -80,6 +86,36 @@ public class PECommand implements CommandExecutor, TabCompleter {
 
             if ("toggle".equals(sub) && canUseSubCommand(sender, "toggle")) {
                 return filterMatches(args[1], List.of("on", "off"));
+            }
+
+            if ("vote".equals(sub)) {
+                List<String> voteTargets = new ArrayList<>();
+                for (String eventName : eventManager.getRegisteredEventInputNames()) {
+                    if (eventManager.isEventVotable(eventManager.findEvent(eventName))) {
+                        voteTargets.add(eventName);
+                    }
+                }
+                return filterMatches(args[1], voteTargets);
+            }
+
+            if ("votes".equals(sub)) {
+                return filterMatches(args[1], List.of("list", "reset"));
+            }
+
+            if ("streak".equals(sub)) {
+                return filterMatches(args[1], List.of("check", "reset"));
+            }
+
+            if ("stats".equals(sub)) {
+                return Collections.emptyList();
+            }
+
+            if ("leaderboard".equals(sub)) {
+                return Collections.emptyList();
+            }
+
+            if ("validate".equals(sub)) {
+                return Collections.emptyList();
             }
         }
 
