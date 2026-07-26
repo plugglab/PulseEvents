@@ -159,6 +159,7 @@ gui:
     summary-cost: "&7Koszt pierwszego glosu: &f%amount%"
     summary-note: "&7Event z najwieksza liczba glosow ma priorytet w nastepnej rundzie."
     vote-cast: "&aZaglosowales na &f%event%&a. Lacznie glosow: &f%votes%&a."
+    vote-already-selected: "&eJuz zaglosowales na ten event."
     not-enough-money: "&cPotrzebujesz &f%amount% &caby zaglosowac."
     payment-failed: "&cNie udalo sie pobrac oplaty za glos."
     vote-failed: "&cNie udalo sie zapisac twojego glosu."

@@ -47,7 +47,12 @@ public class VoteSubCommand extends BaseSubCommand {
             return;
         }
 
-        if (!chargeVoteCost(player, pulseEvent)) {
+        if (eventManager.hasActiveVote(player, pulseEvent)) {
+            sender.sendMessage(lang.getWithPrefix("gui.voting.vote-already-selected"));
+            return;
+        }
+
+        if (!eventManager.hasAnyActiveVote(player) && !chargeVoteCost(player, pulseEvent)) {
             return;
         }
 
@@ -76,19 +81,16 @@ public class VoteSubCommand extends BaseSubCommand {
         }
 
         if (!plugin.getEconomyManager().has(player, cost)) {
-            senderMessage(player, lang.getWithPrefix("gui.voting.not-enough-money", "%amount%", plugin.getEconomyManager().format(cost)));
+            player.sendMessage(lang.getWithPrefix("gui.voting.not-enough-money", "%amount%", plugin.getEconomyManager().format(cost)));
             return false;
         }
 
         if (!plugin.getEconomyManager().withdraw(player, cost)) {
-            senderMessage(player, lang.getWithPrefix("gui.voting.payment-failed"));
+            player.sendMessage(lang.getWithPrefix("gui.voting.payment-failed"));
             return false;
         }
 
         return true;
     }
 
-    private void senderMessage(Player player, String message) {
-        player.sendMessage(message);
-    }
 }

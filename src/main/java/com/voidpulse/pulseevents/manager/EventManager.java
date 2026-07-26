@@ -336,7 +336,12 @@ public class EventManager {
         }
 
         UUID playerId = player.getUniqueId();
-        String previousVote = playerVotes.put(playerId, normalizedKey);
+        String previousVote = playerVotes.get(playerId);
+        if (normalizedKey.equals(previousVote)) {
+            return false;
+        }
+
+        playerVotes.put(playerId, normalizedKey);
         if (previousVote != null) {
             decrementVote(previousVote);
         }

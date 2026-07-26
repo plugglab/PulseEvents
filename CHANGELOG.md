@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.1
+
+### Fixed
+
+- Voting GUI clicks now always select the displayed votable event, even when some events have voting disabled.
+- Clicking the voting summary item no longer casts a vote.
+- A player can no longer pay repeatedly or inflate statistics by voting again for the same event.
+- Changing a vote is now free after the initial paid vote, matching the voting GUI description.
+
+### Added
+
+- Added feedback when a player selects the event they have already voted for.
+
 ## 3.0
 
 ### Added

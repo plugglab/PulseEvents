@@ -76,8 +76,12 @@ public class EventsGuiListener implements Listener {
         }
 
         int slot = event.getSlot();
-        List<PulseEvent> events = getSortedEvents();
-        if (slot < 0 || slot >= events.size()) {
+        if (slot < 0 || slot >= SUMMARY_SLOT) {
+            return;
+        }
+
+        List<PulseEvent> events = holder.mode == MenuMode.VOTING ? getVotableEvents() : getSortedEvents();
+        if (slot >= events.size()) {
             return;
         }
 
@@ -290,8 +294,13 @@ public class EventsGuiListener implements Listener {
             return;
         }
 
+        if (eventManager.hasActiveVote(player, pulseEvent)) {
+            player.sendMessage(lang.getWithPrefix("gui.voting.vote-already-selected"));
+            return;
+        }
+
         double cost = resolveVoteCost(pulseEvent);
-        if (cost > 0.0D && plugin.getEconomyManager().isAvailable()) {
+        if (!eventManager.hasAnyActiveVote(player) && cost > 0.0D && plugin.getEconomyManager().isAvailable()) {
             if (!plugin.getEconomyManager().has(player, cost)) {
                 player.sendMessage(lang.getWithPrefix(
                         "gui.voting.not-enough-money",

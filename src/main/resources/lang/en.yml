@@ -167,6 +167,7 @@ gui:
     summary-cost: "&7First vote cost: &f%amount%"
     summary-note: "&7Highest voted event gets priority next round."
     vote-cast: "&aYou voted for &f%event%&a. Total votes: &f%votes%&a."
+    vote-already-selected: "&eYou have already voted for this event."
     not-enough-money: "&cYou need &f%amount% &cto vote."
     payment-failed: "&cYour vote payment could not be processed."
     vote-failed: "&cYour vote could not be saved."
