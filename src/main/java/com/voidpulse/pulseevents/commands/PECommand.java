@@ -35,6 +35,8 @@ public class PECommand implements CommandExecutor, TabCompleter {
         register(new StreakSubCommand(plugin));
         register(new StatsSubCommand(plugin));
         register(new LeaderboardSubCommand(plugin));
+        register(new ProfileSubCommand(plugin));
+        register(new ActionbarSubCommand(plugin));
         register(new ValidateSubCommand(plugin));
         register(new EventsSubCommand(plugin));
         register(new ToggleSubCommand(plugin));
@@ -111,7 +113,7 @@ public class PECommand implements CommandExecutor, TabCompleter {
             }
 
             if ("leaderboard".equals(sub)) {
-                return Collections.emptyList();
+                return filterMatches(args[1], List.of("streak", "points"));
             }
 
             if ("validate".equals(sub)) {

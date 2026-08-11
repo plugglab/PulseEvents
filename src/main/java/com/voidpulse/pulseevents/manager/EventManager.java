@@ -2,6 +2,7 @@ package com.voidpulse.pulseevents.manager;
 
 import com.voidpulse.pulseevents.events.PulseEvent;
 import com.voidpulse.pulseevents.events.ConfiguredPulseEvent;
+import com.voidpulse.pulseevents.events.ComboPulseEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -37,6 +38,7 @@ public class EventManager {
     private final Random random = new Random();
     private PulseEvent current;
     private AnnouncementManager announcementManager;
+    private ProgressionManager progressionManager;
     private BukkitTask stopTask;
     private boolean eventsSystemEnabled;
     private final Map<UUID, Integer> survivalStreaks = new HashMap<>();
@@ -67,6 +69,10 @@ public class EventManager {
 
     public void setAnnouncementManager(AnnouncementManager announcementManager) {
         this.announcementManager = announcementManager;
+    }
+
+    public void setProgressionManager(ProgressionManager progressionManager) {
+        this.progressionManager = progressionManager;
     }
 
     public boolean isEventRunning() {
@@ -132,7 +138,13 @@ public class EventManager {
         if (selectedEvent == null) {
             selectedEvent = selectWeightedRandomEvent(availableEvents);
         }
-        return selectedEvent != null && startEvent(selectedEvent);
+
+        if (selectedEvent == null) {
+            return false;
+        }
+
+        selectedEvent = applyComboIfEligible(selectedEvent, availableEvents);
+        return startEvent(selectedEvent);
     }
 
     public boolean isEventVotable(PulseEvent event) {
@@ -348,6 +360,11 @@ public class EventManager {
 
         voteCounts.merge(normalizedKey, 1, Integer::sum);
         eventVoteTotals.merge(normalizedKey, 1, Integer::sum);
+
+        if (progressionManager != null) {
+            progressionManager.addPoints(player, plugin.getConfig().getInt("progression.points.vote", 2), "vote");
+        }
+
         return true;
     }
 
@@ -550,6 +567,7 @@ public class EventManager {
         cancelStopTask();
         snapshotCurrentEventSurvivors(event);
         clearVotes();
+        awardParticipationPoints();
 
         try {
             current.start();
@@ -678,6 +696,40 @@ public class EventManager {
         return selectWeightedRandomEvent(candidates);
     }
 
+    private PulseEvent applyComboIfEligible(PulseEvent selectedEvent, List<PulseEvent> availableEvents) {
+        if (!plugin.getConfig().getBoolean("combos.enabled", false)) {
+            return selectedEvent;
+        }
+
+        if (isComboExcluded(selectedEvent)) {
+            return selectedEvent;
+        }
+
+        int chance = Math.max(0, Math.min(100, plugin.getConfig().getInt("combos.chance", 20)));
+        if (chance <= 0 || random.nextInt(100) >= chance) {
+            return selectedEvent;
+        }
+
+        List<PulseEvent> partners = new ArrayList<>();
+        for (PulseEvent candidate : availableEvents) {
+            if (candidate != selectedEvent && !isComboExcluded(candidate)) {
+                partners.add(candidate);
+            }
+        }
+
+        if (partners.isEmpty()) {
+            return selectedEvent;
+        }
+
+        PulseEvent partner = partners.get(random.nextInt(partners.size()));
+        return new ComboPulseEvent(selectedEvent, partner);
+    }
+
+    private boolean isComboExcluded(PulseEvent event) {
+        List<String> excluded = plugin.getConfig().getStringList("combos.exclude");
+        return excluded.contains(event.getKey());
+    }
+
     private void cancelStopTask() {
         if (stopTask != null) {
             stopTask.cancel();
@@ -707,6 +759,24 @@ public class EventManager {
         UUID playerId = player.getUniqueId();
         if (currentEventSurvivors.remove(playerId)) {
             survivalStreaks.put(playerId, 0);
+        }
+    }
+
+    private void awardParticipationPoints() {
+        if (progressionManager == null) {
+            return;
+        }
+
+        int amount = plugin.getConfig().getInt("progression.points.participation", 5);
+        if (amount <= 0) {
+            return;
+        }
+
+        for (UUID playerId : currentEventSurvivors) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null) {
+                progressionManager.addPoints(player, amount, "participation");
+            }
         }
     }
 
@@ -756,6 +826,8 @@ public class EventManager {
             int streak = survivalStreaks.getOrDefault(playerId, 0) + 1;
             survivalStreaks.put(playerId, streak);
 
+            awardSurvivalPoints(player, event, streak, milestones.containsKey(streak));
+
             StreakReward reward = milestones.get(streak);
             if (reward == null) {
                 continue;
@@ -765,6 +837,31 @@ public class EventManager {
         }
 
         currentEventSurvivors.clear();
+    }
+
+    private void awardSurvivalPoints(Player player, PulseEvent event, int streak, boolean hitMilestone) {
+        if (progressionManager == null) {
+            return;
+        }
+
+        int survivalAmount = plugin.getConfig().getInt("progression.points.survival", 10);
+        if (survivalAmount > 0) {
+            progressionManager.addPoints(player, survivalAmount, "survival");
+        }
+
+        if (event instanceof ComboPulseEvent) {
+            int comboAmount = plugin.getConfig().getInt("progression.points.combo-bonus", 10);
+            if (comboAmount > 0) {
+                progressionManager.addPoints(player, comboAmount, "combo-bonus");
+            }
+        }
+
+        if (hitMilestone) {
+            int milestoneAmount = plugin.getConfig().getInt("progression.points.streak-milestone-bonus", 15);
+            if (milestoneAmount > 0) {
+                progressionManager.addPoints(player, milestoneAmount, "streak-milestone-bonus");
+            }
+        }
     }
 
     private Map<Integer, StreakReward> getSurvivalStreakMilestones() {

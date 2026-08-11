@@ -1,5 +1,5 @@
 name: PulseEvents
-version: 3.1
+version: 3.2
 main: com.voidpulse.pulseevents.PulseEvents
 api-version: 1.20
 description: Random events plugin
@@ -13,7 +13,7 @@ softdepend:
 commands:
   pe:
     description: Main command
-    usage: /pe <help|start|stop|status|events|queue|vote|votes|streak|stats|leaderboard|validate|toggle|reload|update>
+    usage: /pe <help|start|stop|status|events|queue|vote|votes|streak|stats|leaderboard|profile|actionbar|validate|toggle|reload|update>
 
 permissions:
   pulseevents.admin:

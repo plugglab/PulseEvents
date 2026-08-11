@@ -24,6 +24,7 @@ import com.voidpulse.pulseevents.manager.LiveUIManager;
 import com.voidpulse.pulseevents.manager.AnnouncementManager;
 import com.voidpulse.pulseevents.manager.CooldownManager;
 import com.voidpulse.pulseevents.manager.CustomEventManager;
+import com.voidpulse.pulseevents.manager.ProgressionManager;
 import com.voidpulse.pulseevents.manager.WorldCheck;
 import com.voidpulse.pulseevents.placeholder.PulseEventsPlaceholderExpansion;
 import com.voidpulse.pulseevents.update.UpdateChecker;
@@ -43,6 +44,7 @@ public final class PulseEvents extends JavaPlugin {
     private EconomyManager economyManager;
     private CooldownManager cooldownManager;
     private CustomEventManager customEventManager;
+    private ProgressionManager progressionManager;
     private EventsGuiListener eventsGuiListener;
     private PulseEventsPlaceholderExpansion placeholderExpansion;
 
@@ -78,6 +80,11 @@ public final class PulseEvents extends JavaPlugin {
         if (liveUIManager != null) {
             liveUIManager.stop();
         }
+
+        if (progressionManager != null) {
+            progressionManager.stopAutosave();
+            progressionManager.saveAll();
+        }
     }
 
     private void initManagers() {
@@ -91,6 +98,8 @@ public final class PulseEvents extends JavaPlugin {
         updateChecker = new UpdateChecker(this, lang, "Ryvox0/PulseEvents");
         economyManager = new EconomyManager(this);
         customEventManager = new CustomEventManager(this, lang, economyManager, worldCheck);
+        progressionManager = new ProgressionManager(this, lang);
+        eventManager.setProgressionManager(progressionManager);
     }
 
     private void registerEvents() {
@@ -105,7 +114,7 @@ public final class PulseEvents extends JavaPlugin {
         );
 
         getServer().getPluginManager().registerEvents(
-                new PlayerSurvivalListener(eventManager),
+                new PlayerSurvivalListener(eventManager, progressionManager),
                 this
         );
 
@@ -151,6 +160,7 @@ public final class PulseEvents extends JavaPlugin {
 
     private void startSystems() {
         announcementManager.start();
+        progressionManager.startAutosave();
 
         if (getConfig().getBoolean("update-check.enabled", true)
                 && getConfig().getBoolean("update-check.check-on-startup", true)) {
@@ -220,5 +230,9 @@ public final class PulseEvents extends JavaPlugin {
 
     public CustomEventManager getCustomEventManager() {
         return customEventManager;
+    }
+
+    public ProgressionManager getProgressionManager() {
+        return progressionManager;
     }
 }

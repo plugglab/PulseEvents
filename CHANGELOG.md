@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.2
+
+### Added
+
+- Persistent Pulse Points and level progression system, saved to `playerdata.yml` and awarded for participating in, surviving, and voting on events, plus streak-milestone and combo bonuses.
+- Level-up rewards using the same vault/item/command modes as streak rewards.
+- `/pe profile [player]` command showing points, level, next level threshold, and current streak.
+- `/pe leaderboard points` mode alongside the existing streak leaderboard.
+- Event combos: two events can now randomly run at the same time, configurable via `combos.*` (disabled by default).
+- Action bar countdown alongside the boss bar, toggleable per player with `/pe actionbar`.
+- New placeholders: `%pulseevents_points%`, `%pulseevents_level%`, `%pulseevents_points_next_level%`, `%pulseevents_points_to_next_level%`.
+
 ## 3.1
 
 ### Fixed

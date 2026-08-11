@@ -16,7 +16,9 @@ command:
     line-votes: "&6/pe votes <list|reset> &7- Sprawdź lub zresetuj głosowania"
     line-streak: "&6/pe streak <check|reset> &7- Sprawdź lub zresetuj serie graczy"
     line-stats: "&6/pe stats &7- Pokaż statystyki wydarzeń i głosów"
-    line-leaderboard: "&6/pe leaderboard &7- Pokaż tabelę wyników serii"
+    line-leaderboard: "&6/pe leaderboard [streak|points] &7- Pokaż tabelę wyników serii lub punktów"
+    line-profile: "&6/pe profile [gracz] &7- Pokaż punkty, poziom i serię"
+    line-actionbar: "&6/pe actionbar &7- Wlacz/wylacz pasek akcji eventow"
     line-validate: "&6/pe validate &7- Sprawdź poprawność plików zdarzeń niestandardowych"
     line-toggle: "&6/pe toggle <on|off> &7- Wlacz lub wylacz system eventow"
     line-reload: "&6/pe reload &7- Przeladuj config i pliki jezykowe"
@@ -45,6 +47,9 @@ command:
     usage: "&eUzyj: &f/pe toggle <on|off>"
     enabled: "&aSystem eventow zostal wlaczony."
     disabled: "&cSystem eventow zostal wylaczony."
+  actionbar:
+    enabled: "&aPasek akcji eventow zostal wlaczony."
+    disabled: "&cPasek akcji eventow zostal wylaczony."
   votes:
     usage: "&eUżyj: &f/pe votes <list|reset>"
     header: "&eAktualne głosy:"
@@ -66,8 +71,17 @@ command:
     top-started: "&7Najczęściej rozpoczynane wydarzenie: &f%event%"
   leaderboard:
     header: "&eTablica liderów serii:"
+    points-header: "&eTablica liderów punktów:"
     empty: "&7Nie zarejestrowano jeszcze żadnych serii."
     line: "&6%index%. &f%player% &7- &f%streak%"
+    points-line: "&6%index%. &f%player% &7- &f%points% &7(Lvl. &f%level%&7)"
+  profile:
+    usage: "&eUzyj: &f/pe profile [gracz]"
+    header: "&eProfil Pulse gracza %player%:"
+    points: "&7Punkty: &f%points%"
+    level: "&7Poziom: &f%level%"
+    next-level: "&7Nastepny poziom przy: &f%points% &7pkt"
+    streak: "&7Aktualna seria: &f%streak%"
   validate:
     header: "&eWeryfikacja zdarzeń niestandardowych:"
     clean: "&aNie znaleziono problemów z walidacją."
@@ -129,6 +143,10 @@ events:
 
 bossbar:
   title: "&9Pulse Event: &f%event%"
+
+progression:
+  level-up: "&d&lNOWY POZIOM! &7Osiagnales poziom Pulse &f%level%&7."
+  reward-received: "&aNagroda za poziom &f%level%&a: &f%reward%&a."
 
 gui:
   events:

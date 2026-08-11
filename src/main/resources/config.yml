@@ -68,6 +68,53 @@ bossbar:
   color: BLUE
   style: SOLID
 
+actionbar:
+  enabled: true
+  format: "&b%event% &7| &f%time%s"
+
+progression:
+  enabled: true
+  autosave-interval-minutes: 5
+  points:
+    participation: 5
+    survival: 10
+    vote: 2
+    streak-milestone-bonus: 15
+    combo-bonus: 10
+  levels:
+    #define one entry per level; "points" is the total points required to reach it
+    #reward modes: vault/command/item (same format as streak-rewards)
+    "1":
+      points: 0
+    "2":
+      points: 50
+    "3":
+      points: 150
+      reward:
+        mode: vault
+        value: 10.0
+    "4":
+      points: 300
+    "5":
+      points: 500
+      reward:
+        mode: item
+        value: "DIAMOND 3"
+    "7":
+      points: 900
+    "10":
+      points: 1500
+      reward:
+        mode: command
+        value: "give %player% netherite_ingot 1"
+
+combos:
+  enabled: false
+  chance: 20
+  exclude:
+    - coin-rain
+    - target-player
+
 update-check:
   enabled: true
   check-on-startup: true

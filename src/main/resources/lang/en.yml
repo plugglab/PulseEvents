@@ -16,7 +16,9 @@ command:
     line-votes: "&6/pe votes <list|reset> &7- Inspect or reset round votes"
     line-streak: "&6/pe streak <check|reset> &7- Inspect or reset player streaks"
     line-stats: "&6/pe stats &7- Show event and vote statistics"
-    line-leaderboard: "&6/pe leaderboard &7- Show the streak leaderboard"
+    line-leaderboard: "&6/pe leaderboard [streak|points] &7- Show the streak or points leaderboard"
+    line-profile: "&6/pe profile [player] &7- Show Pulse Points, level and streak"
+    line-actionbar: "&6/pe actionbar &7- Toggle the personal event action bar"
     line-validate: "&6/pe validate &7- Validate custom event files"
     line-queue: "&6/pe queue <add|list|remove|clear> &7- Manage the FIFO event queue"
     line-toggle: "&6/pe toggle <on|off> &7- Enable or disable the event system"
@@ -66,8 +68,17 @@ command:
     top-started: "&7Most started event: &f%event%"
   leaderboard:
     header: "&eStreak leaderboard:"
+    points-header: "&ePulse Points leaderboard:"
     empty: "&7No streaks recorded yet."
     line: "&6%index%. &f%player% &7- &f%streak%"
+    points-line: "&6%index%. &f%player% &7- &f%points% &7(Lvl. &f%level%&7)"
+  profile:
+    usage: "&eUse: &f/pe profile [player]"
+    header: "&e%player%'s Pulse profile:"
+    points: "&7Points: &f%points%"
+    level: "&7Level: &f%level%"
+    next-level: "&7Next level at: &f%points% &7points"
+    streak: "&7Current streak: &f%streak%"
   validate:
     header: "&eCustom event validation:"
     clean: "&aNo validation problems found."
@@ -78,6 +89,9 @@ command:
     usage: "&eUse: &f/pe toggle <on|off>"
     enabled: "&aThe event system has been enabled."
     disabled: "&cThe event system has been disabled."
+  actionbar:
+    enabled: "&aYou will now see the event action bar."
+    disabled: "&cYou will no longer see the event action bar."
   update:
     checking: "&7Checking GitHub for the latest release..."
   queue:
@@ -135,6 +149,10 @@ events:
 
 bossbar:
   title: "&9Pulse Event: &f%event%"
+
+progression:
+  level-up: "&d&lLEVEL UP! &7You reached Pulse level &f%level%&7."
+  reward-received: "&aLevel &f%level% &areward: &f%reward%&a."
 
 gui:
   events:

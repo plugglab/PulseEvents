@@ -32,6 +32,8 @@ public class HelpSubCommand extends BaseSubCommand {
         sender.sendMessage(lang.get("command.help.line-streak"));
         sender.sendMessage(lang.get("command.help.line-stats"));
         sender.sendMessage(lang.get("command.help.line-leaderboard"));
+        sender.sendMessage(lang.get("command.help.line-profile"));
+        sender.sendMessage(lang.get("command.help.line-actionbar"));
         sender.sendMessage(lang.get("command.help.line-validate"));
         sender.sendMessage(lang.get("command.help.line-queue"));
         sender.sendMessage(lang.get("command.help.line-toggle"));

@@ -2,6 +2,7 @@ package com.voidpulse.pulseevents.placeholder;
 
 import com.voidpulse.pulseevents.PulseEvents;
 import com.voidpulse.pulseevents.manager.EventManager;
+import com.voidpulse.pulseevents.manager.ProgressionManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 
@@ -36,6 +37,7 @@ public class PulseEventsPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String onRequest(OfflinePlayer player, String params) {
         EventManager eventManager = plugin.getEventManager();
+        ProgressionManager progressionManager = plugin.getProgressionManager();
 
         return switch (params.toLowerCase()) {
             case "current_event" -> {
@@ -55,6 +57,21 @@ public class PulseEventsPlaceholderExpansion extends PlaceholderExpansion {
             case "player_streak" -> String.valueOf(eventManager.getPlayerStreak(player == null ? null : player.getPlayer()));
             case "top_streak" -> String.valueOf(eventManager.getTopServerStreak());
             case "next_streak_milestone" -> String.valueOf(eventManager.getNextStreakMilestone(eventManager.getPlayerStreak(player == null ? null : player.getPlayer())));
+            case "points" -> String.valueOf(player == null ? 0 : progressionManager.getPoints(player.getUniqueId()));
+            case "level" -> {
+                int points = player == null ? 0 : progressionManager.getPoints(player.getUniqueId());
+                yield String.valueOf(progressionManager.getLevel(points));
+            }
+            case "points_next_level" -> {
+                int points = player == null ? 0 : progressionManager.getPoints(player.getUniqueId());
+                int nextThreshold = progressionManager.getPointsForNextLevel(progressionManager.getLevel(points));
+                yield nextThreshold < 0 ? "-" : String.valueOf(nextThreshold);
+            }
+            case "points_to_next_level" -> {
+                int points = player == null ? 0 : progressionManager.getPoints(player.getUniqueId());
+                int nextThreshold = progressionManager.getPointsForNextLevel(progressionManager.getLevel(points));
+                yield nextThreshold < 0 ? "-" : String.valueOf(Math.max(0, nextThreshold - points));
+            }
             default -> null;
         };
     }
