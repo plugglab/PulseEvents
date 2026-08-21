@@ -18,7 +18,7 @@ public class UpdateChecker {
 
     private final JavaPlugin plugin;
     private final LanguageManager lang;
-    private final String projectId; // Slug lub ID projektu na Modrinth, np. "pulseevents"
+    private final String projectId;
     private volatile String latestVersion;
 
     public UpdateChecker(JavaPlugin plugin, LanguageManager lang, String projectId) {
