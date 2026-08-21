@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
@@ -17,13 +18,13 @@ public class UpdateChecker {
 
     private final JavaPlugin plugin;
     private final LanguageManager lang;
-    private final String repo;
+    private final String projectId; // Slug lub ID projektu na Modrinth, np. "pulseevents"
     private volatile String latestVersion;
 
-    public UpdateChecker(JavaPlugin plugin, LanguageManager lang, String repo) {
+    public UpdateChecker(JavaPlugin plugin, LanguageManager lang, String projectId) {
         this.plugin = plugin;
         this.lang = lang;
-        this.repo = repo;
+        this.projectId = projectId;
     }
 
     public void check() {
@@ -115,10 +116,13 @@ public class UpdateChecker {
     }
 
     private String fetchLatestVersion() throws Exception {
-        URL url = new URL("https://api.github.com/repos/" + repo + "/releases/latest");
+        URL url = new URL("https://api.modrinth.com/v2/project/" + projectId + "/version");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("User-Agent", "PulseEvents/" + plugin.getDescription().getVersion());
 
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
+                new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
             StringBuilder json = new StringBuilder();
             String line;
 
@@ -127,12 +131,13 @@ public class UpdateChecker {
             }
 
             String data = json.toString();
-            int index = data.indexOf("\"tag_name\":\"");
+
+            int index = data.indexOf("\"version_number\":\"");
             if (index == -1) {
                 return null;
             }
 
-            int start = index + 12;
+            int start = index + 18;
             int end = data.indexOf("\"", start);
             return data.substring(start, end);
         }
