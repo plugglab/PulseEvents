@@ -1,7 +1,7 @@
 package com.voidpulse.pulseevents.manager;
 
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -18,6 +18,8 @@ import java.util.UUID;
 
 @SuppressWarnings("deprecation")
 public class LiveUIManager {
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
     private final JavaPlugin plugin;
     private final LanguageManager lang;
@@ -100,10 +102,11 @@ public class LiveUIManager {
     private void sendActionBarToAll(String eventName, int remainingSeconds) {
         String format = plugin.getConfig().getString("actionbar.format", "&b%event% &7| &f%time%s");
         String message = lang.format(format, "%event%", eventName, "%time%", String.valueOf(Math.max(0, remainingSeconds)));
+        Component component = LEGACY.deserialize(message);
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (isActionBarEnabled(player)) {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                player.sendActionBar(component);
             }
         }
     }

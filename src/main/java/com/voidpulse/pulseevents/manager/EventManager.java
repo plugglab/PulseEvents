@@ -47,6 +47,8 @@ public class EventManager {
     private final Map<String, Integer> voteCounts = new HashMap<>();
     private final Map<String, Integer> eventStartCounts = new HashMap<>();
     private final Map<String, Integer> eventVoteTotals = new HashMap<>();
+    private final Map<String, Long> lastStartedAtMillis = new HashMap<>();
+    private final Map<String, Long> cooldownAvailableAtMillis = new HashMap<>();
     private long currentEventEndTimeMillis;
 
     public EventManager(JavaPlugin plugin, LiveUIManager liveUIManager, LanguageManager lang) {
@@ -564,6 +566,7 @@ public class EventManager {
         current = event;
         currentEventEndTimeMillis = System.currentTimeMillis() + (Math.max(0, event.getDuration()) * 1000L);
         eventStartCounts.merge(normalizeEventKey(event.getKey()), 1, Integer::sum);
+        recordEventStart(event);
         cancelStopTask();
         snapshotCurrentEventSurvivors(event);
         clearVotes();
@@ -602,6 +605,14 @@ public class EventManager {
             liveUIManager.start(eventName, Math.max(0, current.getDuration()));
         }
 
+        if (progressionManager != null && progressionManager.isMultiplierActive()) {
+            Bukkit.broadcastMessage(lang.getWithPrefix(
+                    "progression.multiplier-active",
+                    "%multiplier%",
+                    String.valueOf((int) progressionManager.getActiveMultiplierValue())
+            ));
+        }
+
         if (announcementManager != null) {
             announcementManager.onEventStarted();
         }
@@ -635,7 +646,7 @@ public class EventManager {
         List<PulseEvent> available = new ArrayList<>();
 
         for (PulseEvent event : events) {
-            if (getEventChance(event) > 0) {
+            if (getEventChance(event) > 0 && !isOnCooldown(event)) {
                 available.add(event);
             }
         }
@@ -645,26 +656,79 @@ public class EventManager {
     }
 
     private PulseEvent selectWeightedRandomEvent(List<PulseEvent> availableEvents) {
-        int totalWeight = 0;
+        Map<PulseEvent, Double> weights = new LinkedHashMap<>();
+        double totalWeight = 0.0;
 
         for (PulseEvent event : availableEvents) {
-            totalWeight += getEventChance(event);
+            double weight = getEventChance(event) * getRecencyMultiplier(event);
+            weights.put(event, weight);
+            totalWeight += weight;
         }
 
-        if (totalWeight <= 0) {
+        if (totalWeight <= 0.0) {
             return null;
         }
 
-        int roll = random.nextInt(totalWeight);
+        double roll = random.nextDouble() * totalWeight;
 
-        for (PulseEvent event : availableEvents) {
-            roll -= getEventChance(event);
-            if (roll < 0) {
-                return event;
+        for (Map.Entry<PulseEvent, Double> entry : weights.entrySet()) {
+            roll -= entry.getValue();
+            if (roll < 0.0) {
+                return entry.getKey();
             }
         }
 
         return availableEvents.get(availableEvents.size() - 1);
+    }
+
+    private double getRecencyMultiplier(PulseEvent event) {
+        if (!plugin.getConfig().getBoolean("weighting.recency-bias.enabled", true)) {
+            return 1.0;
+        }
+
+        Long lastStarted = lastStartedAtMillis.get(normalizeEventKey(event.getKey()));
+        if (lastStarted == null) {
+            return 1.0;
+        }
+
+        double decayMinutes = Math.max(0.1, plugin.getConfig().getDouble("weighting.recency-bias.decay-minutes", 15.0));
+        double minMultiplier = Math.max(0.0, Math.min(1.0, plugin.getConfig().getDouble("weighting.recency-bias.min-multiplier", 0.2)));
+        double minutesSince = (System.currentTimeMillis() - lastStarted) / 60000.0;
+        double ratio = Math.min(1.0, minutesSince / decayMinutes);
+
+        return minMultiplier + ((1.0 - minMultiplier) * ratio);
+    }
+
+    public int getEventCooldownSeconds(PulseEvent event) {
+        String key = normalizeEventKey(event.getKey());
+        int specific = plugin.getConfig().getInt("event-cooldowns." + key, -1);
+        if (specific >= 0) {
+            return specific;
+        }
+
+        return Math.max(0, plugin.getConfig().getInt("event-cooldowns.default", 0));
+    }
+
+    private boolean isOnCooldown(PulseEvent event) {
+        Long availableAt = cooldownAvailableAtMillis.get(normalizeEventKey(event.getKey()));
+        return availableAt != null && availableAt > System.currentTimeMillis();
+    }
+
+    private void recordEventStart(PulseEvent event) {
+        if (event instanceof ComboPulseEvent combo) {
+            recordEventStart(combo.getFirst());
+            recordEventStart(combo.getSecond());
+            return;
+        }
+
+        String key = normalizeEventKey(event.getKey());
+        long now = System.currentTimeMillis();
+        lastStartedAtMillis.put(key, now);
+
+        int cooldownSeconds = getEventCooldownSeconds(event);
+        if (cooldownSeconds > 0) {
+            cooldownAvailableAtMillis.put(key, now + (cooldownSeconds * 1000L));
+        }
     }
 
     private PulseEvent selectVotedEvent(List<PulseEvent> availableEvents) {

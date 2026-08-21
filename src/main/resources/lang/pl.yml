@@ -147,6 +147,7 @@ bossbar:
 progression:
   level-up: "&d&lNOWY POZIOM! &7Osiagnales poziom Pulse &f%level%&7."
   reward-received: "&aNagroda za poziom &f%level%&a: &f%reward%&a."
+  multiplier-active: "&d&lBONUS! &7Punkty Pulse sa teraz &f%multiplier%x&7!"
 
 gui:
   events:

@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.3
+
+### Changed
+
+- Ported to Minecraft 26.x: now targets the Paper API (26.2) instead of Spigot API, since Spigot no longer publishes mappings for the 26.x line. Requires Java 25 and a Paper 26.2+ server.
+- Action bar messages now use Paper's native Adventure API instead of the deprecated Bungee `ChatMessageType` path.
+
+### Added
+
+- Seasonal/weekend Pulse Points multiplier: configure `progression.multiplier` to run 2x (or any multiplier) points on chosen days of the week, with an in-game announcement when it's active.
+- Per-event cooldowns: `event-cooldowns.*` lets you set a minimum time between runs of a specific event (or a global default), separate from the `/pe start` command cooldown.
+- Smarter random event weighting: `weighting.recency-bias` biases event selection away from whatever ran most recently, decaying back to normal chance over a configurable window (enabled by default).
+
 ## 3.2
 
 ### Added

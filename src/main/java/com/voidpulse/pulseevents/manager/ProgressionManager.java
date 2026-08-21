@@ -70,11 +70,13 @@ public class ProgressionManager {
             return;
         }
 
+        int adjustedAmount = (int) Math.round(amount * getActiveMultiplier());
+
         UUID playerId = player.getUniqueId();
         int oldPoints = points.getOrDefault(playerId, 0);
         int oldLevel = getLevel(oldPoints);
 
-        int newPoints = oldPoints + amount;
+        int newPoints = oldPoints + adjustedAmount;
         points.put(playerId, newPoints);
         dirty = true;
 
@@ -84,6 +86,31 @@ public class ProgressionManager {
                 onLevelUp(player, level);
             }
         }
+    }
+
+    public boolean isMultiplierActive() {
+        return getActiveMultiplier() > 1.0;
+    }
+
+    public double getActiveMultiplierValue() {
+        return getActiveMultiplier();
+    }
+
+    private double getActiveMultiplier() {
+        if (!plugin.getConfig().getBoolean("progression.multiplier.enabled", false)) {
+            return 1.0;
+        }
+
+        List<String> activeDays = plugin.getConfig().getStringList("progression.multiplier.days");
+        String today = java.time.LocalDate.now().getDayOfWeek().name();
+
+        for (String day : activeDays) {
+            if (day.equalsIgnoreCase(today)) {
+                return Math.max(1.0, plugin.getConfig().getDouble("progression.multiplier.value", 2.0));
+            }
+        }
+
+        return 1.0;
     }
 
     public int getPoints(Player player) {

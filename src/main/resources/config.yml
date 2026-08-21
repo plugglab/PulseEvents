@@ -81,6 +81,13 @@ progression:
     vote: 2
     streak-milestone-bonus: 15
     combo-bonus: 10
+  multiplier:
+    #set enabled to true to run a points multiplier on the listed days (e.g. weekend bonus)
+    enabled: false
+    value: 2.0
+    days:
+      - SATURDAY
+      - SUNDAY
   levels:
     #define one entry per level; "points" is the total points required to reach it
     #reward modes: vault/command/item (same format as streak-rewards)
@@ -114,6 +121,22 @@ combos:
   exclude:
     - coin-rain
     - target-player
+
+#override how long an event must wait before it can be picked again, in seconds.
+#"default" applies to every event without its own entry below. Keys match the event's
+#key (see /pe events), e.g. the class-based key for LightningStormEvent is "lightning-storm".
+event-cooldowns:
+  default: 0
+  #lightning-storm: 120
+  #tnt-rain: 180
+
+#makes the random picker favor events that haven't run in a while, and avoid
+#repeating the same event back-to-back, on top of the normal chance weighting.
+weighting:
+  recency-bias:
+    enabled: true
+    decay-minutes: 15
+    min-multiplier: 0.2
 
 update-check:
   enabled: true
